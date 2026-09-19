@@ -1,6 +1,8 @@
 import { Head } from '@inertiajs/react';
 import AppearanceTabs from '@/components/appearance-tabs';
 import Heading from '@/components/heading';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout'; 
 import { edit as editAppearance } from '@/routes/appearance';
 
 export default function Appearance() {
@@ -22,11 +24,17 @@ export default function Appearance() {
     );
 }
 
-Appearance.layout = {
-    breadcrumbs: [
-        {
-            title: 'Appearance settings',
-            href: editAppearance(),
-        },
-    ],
-};
+
+
+Appearance.layout = (page: React.ReactNode) => (
+    <AppLayout
+        breadcrumbs={[
+            {
+                title: 'Appearance settings',
+                href: editAppearance(),
+            },
+        ]}
+    >
+        <SettingsLayout>{page}</SettingsLayout>
+    </AppLayout>
+);

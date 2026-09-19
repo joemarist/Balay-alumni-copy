@@ -10,6 +10,8 @@ import ManageTwoFactor from '@/components/manage-two-factor';
 import PasswordInput from '@/components/password-input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 import { edit } from '@/routes/security';
 
 type Props = {
@@ -137,11 +139,17 @@ export default function Security(props: Props) {
     );
 }
 
-Security.layout = {
-    breadcrumbs: [
-        {
-            title: 'Security settings',
-            href: edit(),
-        },
-    ],
-};
+
+
+Security.layout = (page: React.ReactNode) => (
+    <AppLayout
+        breadcrumbs={[
+            {
+                title: 'Security settings',
+                href: edit(),
+            },
+        ]}
+    >
+        <SettingsLayout>{page}</SettingsLayout>
+    </AppLayout>
+);

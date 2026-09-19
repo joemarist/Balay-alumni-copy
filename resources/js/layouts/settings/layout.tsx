@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { PropsWithChildren } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -10,25 +10,42 @@ import { edit } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
 import type { NavItem } from '@/types';
 
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: edit(),
-        icon: null,
-    },
-    {
-        title: 'Security',
-        href: editSecurity(),
-        icon: null,
-    },
-    {
-        title: 'Appearance',
-        href: editAppearance(),
-        icon: null,
-    },
-];
-
 export default function SettingsLayout({ children }: PropsWithChildren) {
+    const { auth } = usePage<{
+        auth: { user?: { roles?: string[]; permissions?: string[] } };
+    }>().props;
+    const userRoles = auth.user?.roles ?? [];
+    const userPermissions = auth.user?.permissions ?? [];
+    const canViewPosSettings =
+        ['admin', 'staff', 'superadmin'].some((role) => userRoles.includes(role)) ||
+        userPermissions.includes('view-settings');
+
+    const sidebarNavItems: NavItem[] = [
+        {
+            title: 'Profile',
+            href: typeof edit() === 'string' ? edit() : toUrl(edit()),
+            icon: null,
+        },
+        {
+            title: 'Security',
+            href: typeof editSecurity() === 'string' ? editSecurity() : toUrl(editSecurity()),
+            icon: null,
+        },
+        {
+            title: 'Appearance',
+            href: typeof editAppearance() === 'string' ? editAppearance() : toUrl(editAppearance()),
+            icon: null,
+        },
+    ];
+
+    if (canViewPosSettings) {
+        sidebarNavItems.push({
+            title: 'POS Store Settings',
+            href: '/settings/pos',
+            icon: null,
+        });
+    }
+
     const { isCurrentOrParentUrl } = useCurrentUrl();
 
     return (
