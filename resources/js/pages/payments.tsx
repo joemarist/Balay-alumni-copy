@@ -1,4 +1,5 @@
 import { Head, usePage } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
 import {
     CreditCard,
     CheckCircle,
@@ -36,8 +37,22 @@ type PaymentReservation = {
     event_type: string;
     event_date: string;
     total_amount: string | number;
+
     payment_method: string;
+    payment_amount: string | number | null;
+    payment_reference: string | null;
+    payment_proof: string | null;
+    payment_status: 'unpaid' | 'pending' | 'confirmed' | 'rejected';
+    payment_remarks: string | null;
+
     status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
+
+    user?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+
     venue?: {
         id: number;
         name: string;
@@ -176,33 +191,55 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
             (reservation: PaymentReservation) => ({
                 id: `RES-${reservation.id}`,
                 bookingRef: `B-${reservation.id}`,
-                customer: auth?.user?.name ?? 'Customer User',
-                email: auth?.user?.email ?? 'customer@example.com',
+                customer:
+                    reservation.user?.name ??
+                    auth?.user?.name ??
+                    'Customer User',
+                email:
+                    reservation.user?.email ??
+                    auth?.user?.email ??
+                    'customer@example.com',
                 description: `${reservation.venue?.name ?? 'Venue'} — ${reservation.event_type}`,
                 date: reservation.event_date,
+
                 method:
                     reservation.payment_method === 'Bank Transfer'
                         ? 'Bank Transfer'
-                        : reservation.payment_method === 'Cash at Venue'
+                        : reservation.payment_method === 'Cash'
                         ? 'Cash'
                         : 'GCash',
-                    amount: Number(reservation.total_amount),
-                    status: 'Pending',
-                    reservationStatus: formatReservationStatus(reservation.status),
-                    remarks: 'Reservation created. Please upload your payment proof.',
+
+                amount: Number(
+                    reservation.payment_amount ?? reservation.total_amount,
+                ),
+
+                status:
+                    reservation.payment_status === 'confirmed'
+                        ? 'Confirmed'
+                        : reservation.payment_status === 'rejected'
+                        ? 'Rejected'
+                        : 'Pending',
+
+                reservationStatus: formatReservationStatus(reservation.status),
+
+                proofImage: reservation.payment_proof
+                    ? `/storage/${reservation.payment_proof}`
+                    : undefined,
+
+                remarks:
+                    reservation.payment_remarks ??
+                    'No payment proof submitted yet.',
             }),
         );
 
-        const initialPayments = isStaffOrAdmin
-            ? INITIAL_PAYMENTS
-            : customerReservations;
+        const initialPayments = customerReservations;
 
         const [viewMode, setViewMode] = useState<'admin' | 'user'>(
             isStaffOrAdmin ? 'admin' : 'user',
         );
 
         const [paymentsList, setPaymentsList] =
-            useState<PaymentRecord[]>(initialPayments);
+            useState<PaymentRecord[]>(customerReservations);
         const [searchQuery, setSearchQuery] = useState('');
         const [statusFilter, setStatusFilter] = useState<'All' | 'Confirmed' | 'Pending' | 'Rejected'>('All');
         const [methodFilter, setMethodFilter] = useState<'All' | 'GCash' | 'Bank Transfer' | 'Cash'>('All');
@@ -261,49 +298,139 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
         }, [paymentsList, statusFilter, methodFilter, searchQuery]);
 
         // Admin verify action
-        const handleVerify = (id: string, newStatus: 'Confirmed' | 'Rejected') => {
-            setPaymentsList((prev) =>
-                prev.map((p) => (p.id === id ? { ...p, status: newStatus } : p)),
+        const handleVerify = (
+            id: string,
+            newStatus: 'Confirmed' | 'Rejected',
+        ) => {
+            const reservationId = id.replace('RES-', '');
+
+            router.patch(
+                `/admin/reservations/${reservationId}/payment-status`,
+                {
+                    payment_status:
+                        newStatus === 'Confirmed'
+                            ? 'confirmed'
+                            : 'rejected',
+                },
+                {
+                    preserveScroll: true,
+
+                    onSuccess: () => {
+                        setPaymentsList((prev) =>
+                            prev.map((p) =>
+                                p.id === id
+                                    ? {
+                                          ...p,
+                                          status: newStatus,
+                                      }
+                                    : p,
+                            ),
+                        );
+
+                        if (
+                            viewProofModal &&
+                            viewProofModal.id === id
+                        ) {
+                            setViewProofModal((prev) =>
+                                prev
+                                    ? {
+                                          ...prev,
+                                          status: newStatus,
+                                      }
+                                    : null,
+                            );
+                        }
+
+                        showToast(
+                            `Payment ${id} marked as ${newStatus}.`,
+                        );
+                    },
+                },
             );
-
-            if (viewProofModal && viewProofModal.id === id) {
-                setViewProofModal((prev) => (prev ? { ...prev, status: newStatus } : null));
-            }
-
-            showToast(`Payment ${id} marked as ${newStatus}`);
         };
 
         // Submit proof of payment (User action)
         const handleSubmitProof = (e: React.FormEvent) => {
             e.preventDefault();
-            const newId = `TXN-2024-${String(paymentsList.length + 95).padStart(3, '0')}`;
-            const newPayment: PaymentRecord = {
-                id: newId,
-                bookingRef: uploadForm.bookingRef,
-                customer: auth?.user?.name || 'Customer User',
-                email: auth?.user?.email || 'customer@example.com',
-                description: `${uploadForm.bookingRef} — Payment Proof`,
-                date: new Date().toISOString().split('T')[0],
-                method: uploadForm.method,
-                amount: Number(uploadForm.amount) || 0,
-                status: 'Pending',
-                proofImage: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=600&auto=format&fit=crop',
-                remarks: `Ref: ${uploadForm.referenceNumber || 'N/A'}. ${uploadForm.remarks}`,
-            };
 
-            setPaymentsList([newPayment, ...paymentsList]);
-            setShowUploadModal(false);
-            setUploadForm({
-                bookingRef: customerReservations[0]?.bookingRef ?? '',
-                amount: customerReservations[0]
-                    ? String(Math.round(customerReservations[0].amount * 0.5))
-                    : '',
-                method: 'GCash',
-                referenceNumber: '',
-                remarks: '',
-                proofFile: null,
-            });
-            showToast('Payment proof submitted successfully! Verification takes 1-2 hours.');
+            const selectedReservation = customerReservations.find(
+                (reservation) =>
+                    reservation.bookingRef === uploadForm.bookingRef,
+            );
+
+            if (!selectedReservation) {
+                showToast('Please select a reservation.');
+                return;
+            }
+
+            if (!uploadForm.proofFile) {
+                showToast('Please select your payment proof.');
+                return;
+            }
+
+            const reservationId = selectedReservation.id.replace('RES-', '');
+
+            const formData = new FormData();
+
+            formData.append(
+                'payment_amount',
+                uploadForm.amount,
+            );
+
+            formData.append(
+                'payment_method',
+                uploadForm.method,
+            );
+
+            formData.append(
+                'payment_reference',
+                uploadForm.referenceNumber,
+            );
+
+            formData.append(
+                'payment_proof',
+                uploadForm.proofFile,
+            );
+
+            if (uploadForm.remarks) {
+                formData.append(
+                    'payment_remarks',
+                    uploadForm.remarks,
+                );
+            }
+
+            router.post(
+                `/reservations/${reservationId}/payment-proof`,
+                formData,
+                {
+                    forceFormData: true,
+                    preserveScroll: true,
+
+                    onSuccess: () => {
+                        setShowUploadModal(false);
+
+                        setUploadForm({
+                            bookingRef:
+                                customerReservations[0]?.bookingRef ?? '',
+                            amount: customerReservations[0]
+                                ? String(
+                                      Math.round(
+                                          customerReservations[0].amount * 0.5,
+                                      ),
+                                  )
+                                : '',
+                            method: 'GCash',
+                            referenceNumber: '',
+                            remarks: '',
+                            proofFile: null,
+                        });
+
+                        showToast(
+                            'Payment proof submitted successfully! Please wait for verification.',
+                        );
+                    },
+                },
+            );
         };
 
         const handleExportCSV = () => {
@@ -863,12 +990,42 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                     <label className="mb-1 block font-semibold text-neutral-700 dark:text-neutral-300">
                                         Receipt Screenshot / Attachment
                                     </label>
-                                    <div className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 p-6 text-center transition-colors hover:border-[#6B1E28] dark:border-neutral-700 dark:bg-neutral-800/40 dark:hover:border-[#881337]">
+
+                                    <div className="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 p-6 text-center transition-colors hover:border-[#6B1E28] dark:border-neutral-700 dark:bg-neutral-800/40 dark:hover:border-[#881337]">
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/jpg,image/gif,image/webp,application/pdf"
+                                            required
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+
+                                                if (!file) {
+                                                    return;
+                                                }
+
+                                                setUploadForm({
+                                                    ...uploadForm,
+                                                    proofFile: file,
+                                                });
+                                            }}
+                                            className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                                        />
+
                                         <Upload className="size-6 text-neutral-400" />
+
                                         <p className="mt-2 font-medium text-neutral-700 dark:text-neutral-300">
                                             Click to browse or drag receipt screenshot
                                         </p>
-                                        <p className="text-[10px] text-neutral-400">PNG, JPG, or PDF up to 10MB</p>
+
+                                        <p className="text-[10px] text-neutral-400">
+                                            PNG, JPG, WEBP, or PDF up to 10MB
+                                        </p>
+
+                                        {uploadForm.proofFile && (
+                                            <p className="mt-2 text-xs font-medium text-green-600">
+                                                Selected: {uploadForm.proofFile.name}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

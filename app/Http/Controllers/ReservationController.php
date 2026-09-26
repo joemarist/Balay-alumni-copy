@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Storage;
 
 class ReservationController extends Controller
 {
@@ -48,14 +49,119 @@ class ReservationController extends Controller
 
     public function payments(): Response
 {
-    $reservations = Reservation::with('venue')
-        ->where('user_id', Auth::id())
-        ->latest()
-        ->get();
+    $user = Auth::user();
+
+    if (
+        $user instanceof User &&
+        $user->hasAnyRole(['admin', 'superadmin', 'staff'])
+    ) {
+        $reservations = Reservation::with(['venue', 'user'])
+            ->latest()
+            ->get();
+    } else {
+        $reservations = Reservation::with('venue')
+            ->where('user_id', Auth::id())
+            ->latest()
+            ->get();
+    }
 
     return Inertia::render('payments', [
         'reservations' => $reservations,
     ]);
+}
+
+public function submitPaymentProof(
+    Request $request,
+    Reservation $reservation,
+): RedirectResponse {
+    abort_unless(
+        $reservation->user_id === Auth::id(),
+        403,
+    );
+
+    $validated = $request->validate([
+        'payment_amount' => [
+            'required',
+            'numeric',
+            'min:1',
+            'max:' . $reservation->total_amount,
+        ],
+        'payment_method' => [
+            'required',
+            'in:GCash,Bank Transfer,Cash',
+        ],
+        'payment_reference' => [
+            'required',
+            'string',
+            'max:255',
+        ],
+        'payment_remarks' => [
+            'nullable',
+            'string',
+        ],
+        'payment_proof' => [
+            'required',
+            'file',
+            'mimes:jpg,jpeg,png,gif,webp,pdf',
+            'max:10240',
+        ],
+    ]);
+
+    if ($request->hasFile('payment_proof')) {
+        $validated['payment_proof'] = $request
+            ->file('payment_proof')
+            ->store('payment-proofs', 'public');
+    }
+
+    $reservation->update([
+        'payment_method' => $validated['payment_method'],
+        'payment_amount' => $validated['payment_amount'],
+        'payment_reference' => $validated['payment_reference'],
+        'payment_proof' => $validated['payment_proof'],
+        'payment_status' => 'pending',
+        'payment_remarks' => $validated['payment_remarks'] ?? null,
+        'payment_submitted_at' => now(),
+    ]);
+
+    return back()->with(
+        'success',
+        'Payment proof submitted successfully. Please wait for verification.',
+    );
+}
+
+public function updatePaymentStatus(
+    Request $request,
+    Reservation $reservation,
+): RedirectResponse {
+    $user = Auth::user();
+
+    abort_unless(
+        $user instanceof User &&
+        $user->hasAnyRole(['admin', 'superadmin', 'staff']),
+        403,
+    );
+
+    $validated = $request->validate([
+        'payment_status' => [
+            'required',
+            'in:confirmed,rejected',
+        ],
+        'payment_remarks' => [
+            'nullable',
+            'string',
+        ],
+    ]);
+
+    $reservation->update([
+        'payment_status' => $validated['payment_status'],
+        'payment_remarks' => $validated['payment_remarks']
+            ?? $reservation->payment_remarks,
+    ]);
+
+    return back()->with(
+        'success',
+        'Payment status updated successfully.',
+    );
 }
 
     public function updateStatus(

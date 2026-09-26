@@ -25,6 +25,12 @@ class Reservation extends Model
         'venue_rental',
         'service_fee',
         'total_amount',
+        'payment_amount',
+        'payment_reference',
+        'payment_proof',
+        'payment_status',
+        'payment_remarks',
+        'payment_submitted_at',
         'status',
     ];
 
@@ -37,6 +43,8 @@ class Reservation extends Model
             'venue_rental' => 'decimal:2',
             'service_fee' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'payment_amount' => 'decimal:2',
+            'payment_submitted_at' => 'datetime',
         ];
     }
 

@@ -85,59 +85,95 @@ export default function AdminVenues() {
     }
 
     function handleAddVenue(values: VenueFormValues) {
-        router.post(
-            '/venues',
-            {
-                name: values.name,
-                description: values.description,
-                category: values.category,
-                capacity_pax: values.capacityPax,
-                capacity_label: values.capacityLabel ?? null,
-                rate: values.rate,
-                rate_duration: values.rateDuration,
-                inclusions: values.inclusions,
-                note: values.note ?? null,
-                image: values.image ?? null,
-                available: values.available,
+        const formData = new FormData();
+
+        formData.append('name', values.name);
+        formData.append('description', values.description);
+        formData.append('category', values.category);
+        formData.append('capacity_pax', String(values.capacityPax));
+
+        if (values.capacityLabel) {
+            formData.append('capacity_label', values.capacityLabel);
+        }
+
+        formData.append('rate', String(values.rate));
+        formData.append('rate_duration', values.rateDuration);
+
+        values.inclusions.forEach((inclusion, index) => {
+            formData.append(`inclusions[${index}]`, inclusion);
+        });
+
+        if (values.note) {
+            formData.append('note', values.note);
+        }
+
+        if (values.imageFile) {
+            formData.append('image', values.imageFile);
+        }
+
+        formData.append('available', values.available ? '1' : '0');
+
+        router.post('/venues', formData, {
+            forceFormData: true,
+            preserveScroll: true,
+
+            onSuccess: () => {
+                setFormModal(null);
+                setToast({
+                    message: `"${values.name}" was added successfully.`,
+                });
             },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setFormModal(null);
-                    setToast({
-                        message: `"${values.name}" was added successfully.`,
-                    });
-                },
-            },
-        );
+        });
     }
 
     function handleEditVenue(id: number, values: VenueFormValues) {
-        router.put(
-            `/venues/${id}`,
-            {
-                name: values.name,
-                description: values.description,
-                category: values.category,
-                capacity_pax: values.capacityPax,
-                capacity_label: values.capacityLabel ?? null,
-                rate: values.rate,
-                rate_duration: values.rateDuration,
-                inclusions: values.inclusions,
-                note: values.note ?? null,
-                image: values.image ?? null,
-                available: values.available,
+        const formData = new FormData();
+
+        formData.append('_method', 'PUT');
+        formData.append('name', values.name);
+        formData.append('description', values.description);
+        formData.append('category', values.category);
+        formData.append('capacity_pax', String(values.capacityPax));
+
+        if (values.capacityLabel) {
+            formData.append('capacity_label', values.capacityLabel);
+        }
+
+        formData.append('rate', String(values.rate));
+        formData.append('rate_duration', values.rateDuration);
+
+        values.inclusions.forEach((inclusion, index) => {
+            formData.append(`inclusions[${index}]`, inclusion);
+        });
+
+        if (values.note) {
+            formData.append('note', values.note);
+        }
+
+        /*
+         * Only send an image when the admin selected
+         * a NEW image.
+         *
+         * If no new image was selected, Laravel will
+         * keep the existing image.
+         */
+        if (values.imageFile) {
+            formData.append('image', values.imageFile);
+        }
+
+        formData.append('available', values.available ? '1' : '0');
+
+        router.post(`/venues/${id}`, formData, {
+            forceFormData: true,
+            preserveScroll: true,
+
+            onSuccess: () => {
+                setFormModal(null);
+                setToast({
+                    message: `"${values.name}" was updated successfully.`,
+                });
             },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setFormModal(null);
-                    setToast({
-                        message: `"${values.name}" was updated successfully.`,
-                    });
-                },
-            },
-        );
+        });
     }
 
     function handleDeleteVenue() {

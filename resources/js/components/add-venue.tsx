@@ -18,7 +18,10 @@ export type AdminVenue = {
     available: boolean;
 };
 
-export type VenueFormValues = Omit<AdminVenue, 'id'>;
+export type VenueFormValues = Omit<AdminVenue, 'id' | 'image'> & {
+    image?: string;
+    imageFile?: File | null;
+};
 
 const categories: VenueCategory[] = ['Function Hall', 'Conference', 'Whole Venue'];
 
@@ -34,6 +37,7 @@ function emptyFormState() {
         inclusionsText: '',
         note: '',
         image: '',
+        imageFile: null as File | null,
         available: true,
     };
 }
@@ -50,6 +54,7 @@ function venueToFormState(venue: AdminVenue) {
         inclusionsText: venue.inclusions.join('\n'),
         note: venue.note ?? '',
         image: venue.image ?? '',
+        imageFile: null as File | null,
         available: venue.available,
     };
 }
@@ -103,6 +108,7 @@ function formsAreEqual(
         a.inclusionsText === b.inclusionsText &&
         a.note === b.note &&
         a.image === b.image &&
+        a.imageFile === b.imageFile &&
         a.available === b.available
     );
 }
@@ -151,6 +157,7 @@ export function VenueFormModal({
                 .filter(Boolean),
             note: form.note || undefined,
             image: form.image || undefined,
+            imageFile: form.imageFile,
             available: form.available,
         };
 
@@ -325,33 +332,60 @@ export function VenueFormModal({
                         </div>
 
                         <div>
-                            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                                Image
-                            </label>
-                            <div className="relative flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-white px-6 py-8 hover:bg-neutral-50">
+                        <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                            Image
+                        </label>
+
+                        <div className="relative flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-white px-6 py-8 hover:bg-neutral-50">
                             <input
-                                type="text"
-                                value={form.image}
-                                onChange={(event) => updateField('image', event.target.value)}
-                                placeholder="/images/venue/example.png"
-                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                                type="file"
+                                accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                                onChange={(event) => {
+                                    const file = event.target.files?.[0];
+
+                                    if (!file) {
+                                        return;
+                                    }
+
+                                    const previewUrl = URL.createObjectURL(file);
+
+                                    updateField('image', previewUrl);
+                                    updateField('imageFile', file);
+                                }}
+                                className="absolute inset-0 z-10 cursor-pointer opacity-0"
                             />
-                                <div className="flex flex-col items-center justify-center space-y-2 text-center">
-                                    <div className="rounded-full bg-white p-3 shadow-sm">
-                                        <ImagePlus className="size-6 text-[#6B1E28]" />
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700">
-                                        Click to upload image
-                                    </div>
-                                    <p className="text-xs text-neutral-500">
-                                        SVG, PNG, JPG or GIF (max. 5MB)
-                                    </p>
+
+                            <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                                <div className="rounded-full bg-white p-3 shadow-sm">
+                                    <ImagePlus className="size-6 text-[#6B1E28]" />
                                 </div>
+
+                                <div className="text-sm font-medium text-neutral-700">
+                                    Click to upload image
+                                </div>
+
+                                <p className="text-xs text-neutral-500">
+                                    JPG, PNG, GIF or WEBP (max. 5MB)
+                                </p>
                             </div>
-                            {form.image && form.image.startsWith('blob:') && (
-                                <p className="mt-2 text-xs text-green-600">Image selected for upload.</p>
-                            )}
                         </div>
+
+                        {form.image && (
+                            <div className="mt-3 overflow-hidden rounded-lg border border-neutral-200">
+                                <img
+                                    src={form.image}
+                                    alt="Venue preview"
+                                    className="h-48 w-full object-cover"
+                                />
+                            </div>
+                        )}
+
+                        {form.imageFile && (
+                            <p className="mt-2 text-xs text-green-600">
+                                Selected: {form.imageFile.name}
+                            </p>
+                        )}
+                    </div>
 
                         <label className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-3">
                             <span>

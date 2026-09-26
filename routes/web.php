@@ -45,7 +45,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('cafe-orders', 'UserCafe')->name('cafe');
     Route::inertia('event-packages', 'event-packages')->name('packages');
     Route::get('payments', [ReservationController::class, 'payments'])
-        ->name('payments');
+    ->name('payments');
+    Route::post(
+        'reservations/{reservation}/payment-proof',
+        [ReservationController::class, 'submitPaymentProof']
+    )->name('reservations.payment-proof');
+    Route::patch(
+        'admin/reservations/{reservation}/payment-status',
+        [ReservationController::class, 'updatePaymentStatus']
+    )->name('admin.reservations.payment-status');
     Route::inertia('reports', 'reports')->name('reports');
     Route::inertia('notifications', 'notifications')->name('notifications');
 
