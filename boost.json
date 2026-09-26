@@ -1,16 +1,8 @@
 {
-    "cloud": false,
-    "guidelines": true,
+    "agents": [
+        "copilot"
+    ],
     "mcp": true,
     "nightwatch": false,
-    "sail": false,
-    "skills": [
-        "infer-conventions",
-        "fortify-development",
-        "laravel-best-practices",
-        "wayfinder-development",
-        "pest-testing",
-        "inertia-react-development",
-        "tailwindcss-development"
-    ]
+    "sail": false
 }

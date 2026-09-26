@@ -1,6 +1,6 @@
-import { Head } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import { Clock, Pencil, Plus, Trash2, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { VenueFormModal } from '@/components/add-venue';
 import type { AdminVenue, VenueFormValues } from '@/components/add-venue';
@@ -11,58 +11,58 @@ import type { ToastData } from '@/components/toast';
 
 import { venues as adminVenues } from '@/routes/admin';
 
-const initialVenues: AdminVenue[] = [
-    {
-        id: 1,
-        name: 'Balay Alumni Function Hall',
-        description:
-            'Fully air-conditioned function hall perfect for events, gatherings, and celebrations.',
-        category: 'Function Hall',
-        capacityPax: 100,
-        capacityLabel: '80-100 pax',
-        rate: 15000,
-        rateDuration: '4 hours use',
-        inclusions: ['Tables & Chairs', 'Basic Sound System', 'Fully Air-Conditioned', 'Big Parking Area'],
-        note: 'Corkage Fee: ₱500 for lechon.',
-        image: '/images/venue/venue-functionhall.png',
-        available: true,
-    },
-    {
-        id: 2,
-        name: 'Balay Cafe Conference Room',
-        description:
-            'Intimate air-conditioned conference room ideal for meetings and small group sessions.',
-        category: 'Conference',
-        capacityPax: 20,
-        capacityLabel: '10-20 persons',
-        rate: 3000,
-        rateDuration: '4 hours use',
-        inclusions: ['Long Table & Office Chairs', 'Basic Sound System', 'Flat Screen TV', 'Air-Conditioned'],
-        image: '/images/venue/venue-conference.png',
-        available: true,
-    },
-    {
-        id: 3,
-        name: 'Whole Area of Balay Alumni',
-        description: 'The entire Balay Alumni venue — perfect for company occasions and large events.',
-        category: 'Whole Venue',
-        capacityPax: 200,
-        capacityLabel: '150-200 persons',
-        rate: 30000,
-        rateDuration: '4 hours use',
-        inclusions: ['Function Hall', 'Cafe Mini Hall', 'Open Place at Balay Alumni', 'Big Parking Area'],
-        image: '/images/venue/venue-wholearea.png',
-        available: true,
-    },
-];
-
 type FormModalState = { mode: 'add' } | { mode: 'edit'; venue: AdminVenue };
 
+type BackendVenue = {
+    id: number;
+    name: string;
+    description: string;
+    category: 'Function Hall' | 'Conference' | 'Whole Venue';
+    capacity_pax: number;
+    capacity_label: string | null;
+    rate: string | number;
+    rate_duration: string;
+    inclusions: string[];
+    note: string | null;
+    image: string | null;
+    available: boolean;
+};
+
 export default function AdminVenues() {
-    const [venueList, setVenueList] = useState<AdminVenue[]>(initialVenues);
-    const [formModal, setFormModal] = useState<FormModalState | null>(null);
-    const [deleteTarget, setDeleteTarget] = useState<AdminVenue | null>(null);
+    const { venues = [] } = usePage<{
+        venues?: BackendVenue[];
+    }>().props;
+
+    const databaseVenues: AdminVenue[] = venues.map((venue) => ({
+        id: venue.id,
+        name: venue.name,
+        description: venue.description,
+        category: venue.category,
+        capacityPax: venue.capacity_pax,
+        capacityLabel: venue.capacity_label ?? undefined,
+        rate: Number(venue.rate),
+        rateDuration: venue.rate_duration,
+        inclusions: venue.inclusions ?? [],
+        note: venue.note ?? undefined,
+        image: venue.image ?? undefined,
+        available: venue.available,
+    }));
+
+    const [venueList, setVenueList] =
+        useState<AdminVenue[]>(databaseVenues);
+
+    const [formModal, setFormModal] =
+        useState<FormModalState | null>(null);
+
+    const [deleteTarget, setDeleteTarget] =
+        useState<AdminVenue | null>(null);
+
     const [toast, setToast] = useState<ToastData | null>(null);
+
+    useEffect(() => {
+        setVenueList(databaseVenues);
+    }, [databaseVenues]);
+
 
     const availableCount = useMemo(
         () => venueList.filter((venue) => venue.available).length,
@@ -70,30 +70,74 @@ export default function AdminVenues() {
     );
 
     function handleToggleAvailability(id: number) {
-        // TODO
-        setVenueList((current) =>
-            current.map((venue) => (venue.id === id ? { ...venue, available: !venue.available } : venue)),
+        router.patch(
+            `/venues/${id}/availability`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setToast({
+                        message: 'Venue availability updated successfully.',
+                    });
+                },
+            },
         );
     }
 
     function handleAddVenue(values: VenueFormValues) {
-        // TODO
-        const newVenue: AdminVenue = {
-            ...values,
-            id: Math.max(0, ...venueList.map((venue) => venue.id)) + 1,
-        };
-        setVenueList((current) => [...current, newVenue]);
-        setFormModal(null);
-        setToast({ message: `"${newVenue.name}" was added successfully.` });
+        router.post(
+            '/venues',
+            {
+                name: values.name,
+                description: values.description,
+                category: values.category,
+                capacity_pax: values.capacityPax,
+                capacity_label: values.capacityLabel ?? null,
+                rate: values.rate,
+                rate_duration: values.rateDuration,
+                inclusions: values.inclusions,
+                note: values.note ?? null,
+                image: values.image ?? null,
+                available: values.available,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setFormModal(null);
+                    setToast({
+                        message: `"${values.name}" was added successfully.`,
+                    });
+                },
+            },
+        );
     }
 
     function handleEditVenue(id: number, values: VenueFormValues) {
-        // TODO
-        setVenueList((current) =>
-            current.map((venue) => (venue.id === id ? { ...venue, ...values } : venue)),
+        router.put(
+            `/venues/${id}`,
+            {
+                name: values.name,
+                description: values.description,
+                category: values.category,
+                capacity_pax: values.capacityPax,
+                capacity_label: values.capacityLabel ?? null,
+                rate: values.rate,
+                rate_duration: values.rateDuration,
+                inclusions: values.inclusions,
+                note: values.note ?? null,
+                image: values.image ?? null,
+                available: values.available,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setFormModal(null);
+                    setToast({
+                        message: `"${values.name}" was updated successfully.`,
+                    });
+                },
+            },
         );
-        setFormModal(null);
-        setToast({ message: `"${values.name}" was updated successfully.` });
     }
 
     function handleDeleteVenue() {
@@ -101,11 +145,17 @@ export default function AdminVenues() {
             return;
         }
 
-        // TODO
         const deletedName = deleteTarget.name;
-        setVenueList((current) => current.filter((venue) => venue.id !== deleteTarget.id));
-        setDeleteTarget(null);
-        setToast({ message: `"${deletedName}" was deleted successfully.` });
+
+        router.delete(`/venues/${deleteTarget.id}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setDeleteTarget(null);
+                setToast({
+                    message: `"${deletedName}" was deleted successfully.`,
+                });
+            },
+        });
     }
 
     return (

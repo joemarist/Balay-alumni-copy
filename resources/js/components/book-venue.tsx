@@ -1,4 +1,5 @@
 import { Check, X } from 'lucide-react';
+import { router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 import type { Venue } from '@/types';
@@ -33,7 +34,22 @@ const paymentMethods = ['GCash', 'Bank Transfer', 'Cash at Venue'];
 const SERVICE_FEE_RATE = 0.05;
 
 function parseRate(rate: string): number {
-    return Number(rate.replace(/[^\d]/g, ''));
+    return Number(rate.replace(/[^\d.]/g, ''));
+}
+
+function convertTo24Hour(time: string): string {
+    const [timePart, modifier] = time.split(' ');
+    let [hours, minutes] = timePart.split(':').map(Number);
+
+    if (modifier === 'PM' && hours !== 12) {
+        hours += 12;
+    }
+
+    if (modifier === 'AM' && hours === 12) {
+        hours = 0;
+    }
+
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 function Stepper({ step }: { step: 1 | 2 | 3 }) {
@@ -84,6 +100,10 @@ export function BookVenueModal({
     venue: Venue;
     onClose: () => void;
 }) {
+    const { errors } = usePage<{
+        errors: Record<string, string>;
+    }>().props;
+
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [form, setForm] = useState<BookingForm>({
         eventType: eventTypes[0],
@@ -104,8 +124,52 @@ export function BookVenueModal({
     }
 
     function handleConfirm() {
-    
-        onClose();
+        if (!form.eventDate) {
+            alert('Please select an event date.');
+            setStep(2);
+            return;
+        }
+
+        if (!form.guestCount || Number(form.guestCount) < 1) {
+            alert('Please enter the number of guests.');
+            setStep(1);
+            return;
+        }
+
+        router.post(
+            '/reservations',
+            {
+                venue_id: venue.id,
+                event_type: form.eventType,
+                guest_count: Number(form.guestCount),
+                event_date: form.eventDate,
+                start_time: convertTo24Hour(form.startTime),
+                end_time: convertTo24Hour(form.endTime),
+                special_requests: form.specialRequests || null,
+                payment_method: form.paymentMethod,
+            },
+            {
+                preserveScroll: true,
+
+                onSuccess: () => {
+                    onClose();
+                },
+
+                onError: (errors) => {
+                    if (
+                        errors.event_date ||
+                        errors.start_time ||
+                        errors.end_time
+                    ) {
+                        setStep(2);
+                    }
+
+                    if (errors.guest_count || errors.venue_id) {
+                        setStep(1);
+                    }
+                },
+            },
+        );
     }
 
     return (
@@ -132,6 +196,14 @@ export function BookVenueModal({
 
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto p-5">
+                    {Object.keys(errors ?? {}).length > 0 && (
+                        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                            {Object.values(errors ?? {}).map((error, index) => (
+                                <p key={index}>{String(error)}</p>
+                            ))}
+                        </div>
+                    )}
+
                     {step === 1 && (
                         <div className="flex flex-col gap-4">
                             <div className="aspect-video overflow-hidden rounded-lg bg-neutral-100">
@@ -145,11 +217,17 @@ export function BookVenueModal({
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="rounded-lg bg-white p-3">
                                     <p className="text-xs text-neutral-500">Capacity</p>
-                                    <p className="font-semibold text-[#3A1A1F]">{venue.capacity}</p>
+                                    <p className="font-semibold text-[#3A1A1F]">
+                                    {venue.capacity_label ?? `${venue.capacity_pax} pax`}</p>
                                 </div>
                                 <div className="rounded-lg bg-white p-3">
-                                    <p className="text-xs text-neutral-500">Rate ({venue.duration})</p>
-                                    <p className="font-semibold text-[#3A1A1F]">{venue.rate}</p>
+                                <p className="text-xs text-neutral-500">Rate ({venue.rate_duration})</p>
+                                <p className="font-semibold text-[#3A1A1F]">
+                                    ₱{Number(venue.rate).toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </p>
                                 </div>
                             </div>
 
@@ -163,10 +241,10 @@ export function BookVenueModal({
                                         </span>
                                     ))}
                                 </div>
-                                {venue.corkageFee && (
-                                    <p className="mt-3 border-t border-neutral-200 pt-2 text-xs text-[#6B1E28]">
-                                        Corkage Fee: {venue.corkageFee}
-                                    </p>
+                                {venue.note && (
+                                <p className="mt-3 border-t border-neutral-200 pt-2 text-xs text-[#6B1E28]">
+                                    {venue.note}
+                                </p>
                                 )}
                             </div>
 
@@ -304,15 +382,33 @@ export function BookVenueModal({
                             <div className="rounded-lg border border-neutral-200 p-4">
                                 <div className="flex justify-between text-sm text-neutral-600">
                                     <span>Venue Rental</span>
-                                    <span>₱{venueRental.toLocaleString()}</span>
+                                    <span>
+                                        ₱
+                                        {venueRental.toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
                                 </div>
                                 <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
                                     <span>Service Fee (5%)</span>
-                                    <span>₱{serviceFee.toLocaleString()}</span>
+                                    <span>
+                                        ₱
+                                        {serviceFee.toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
                                 </div>
                                 <div className="mt-2 flex justify-between border-t border-neutral-200 pt-2 font-semibold text-[#3A1A1F]">
                                     <span>Total</span>
-                                    <span>₱{total.toLocaleString()}</span>
+                                    <span>
+                                        ₱
+                                        {total.toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
                                 </div>
                             </div>
 

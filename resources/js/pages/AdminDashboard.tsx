@@ -27,6 +27,70 @@ import { dashboard as adminDashboard, venues as adminVenues } from '@/routes/adm
 
 type ReservationStatus = 'Approved' | 'Pending' | 'Completed' | 'Cancelled';
 
+interface AdminDashboardProps {
+    totalReservations: number;
+    totalRevenue: number;
+    activeCustomers: number;
+    upcomingEvents: number;
+    availableVenues: number;
+    totalVenues: number;
+
+    monthlyReservations: {
+        month: string;
+        total: number;
+        rejected: number;
+        nonRejected: number;
+    }[];
+
+    revenueTrend: {
+        month: string;
+        revenue: number;
+    }[];
+}
+
+const CustomReservationTooltip = ({
+    active,
+    payload,
+    label,
+}: {
+    active?: boolean;
+    payload?: {
+        dataKey: string;
+        value: number;
+    }[];
+    label?: string;
+}) => {
+    if (!active || !payload || payload.length === 0) {
+        return null;
+    }
+
+    const nonRejected =
+        payload.find((item) => item.dataKey === 'nonRejected')?.value ?? 0;
+
+    const rejected =
+        payload.find((item) => item.dataKey === 'rejected')?.value ?? 0;
+
+    const total = nonRejected + rejected;
+
+    return (
+        <div className="rounded-lg border border-neutral-200 bg-white p-3 shadow-lg">
+            <p className="mb-2 font-semibold text-[#3A1A1F]">{label}</p>
+
+            <p className="text-sm text-neutral-700">
+                Total Reservations: <span className="font-semibold">{total}</span>
+            </p>
+
+            <p className="text-sm text-neutral-700">
+                Non-Rejected: <span className="font-semibold">{nonRejected}</span>
+            </p>
+
+            <p className="text-sm text-neutral-700">
+                Rejected: <span className="font-semibold">{rejected}</span>
+            </p>
+        </div>
+    );
+};
+
 type Reservation = {
     bookingId: string;
     customer: string;
@@ -38,16 +102,6 @@ type Reservation = {
 };
 
 // TODO
-const revenueTrend = [
-    { month: 'Jan', revenue: 10000, expenses: 5000 },
-    { month: 'Feb', revenue: 20000, expenses: 10000 },
-    { month: 'Mar', revenue: 30000, expenses: 15000 },
-    { month: 'Apr', revenue: 40000, expenses: 20000 },
-    { month: 'May', revenue: 50000, expenses: 25000 },
-    { month: 'Jun', revenue: 60000, expenses: 30000 },
-    { month: 'Jul', revenue: 70000, expenses: 35000 },
-    { month: 'Aug', revenue: 80000, expenses: 40000 },
-];
 
 
 
@@ -59,15 +113,6 @@ const bestSellingProducts = [
     { name: 'Cheesecake Slice', count: 198 },
 ];
 
-const monthlyReservations = [
-    { month: 'Jan', count: 28 },
-    { month: 'Feb', count: 20 },
-    { month: 'Mar', count: 24 },
-    { month: 'Apr', count: 19 },
-    { month: 'May', count: 30 },
-    { month: 'Jun', count: 14 },
-    { month: 'Jul', count: 36 },
-];
 
 const venueUtilization = [
     { name: 'Grand Ballroom', percent: 88 },
@@ -169,7 +214,17 @@ function StatCard({
     );
 }
 
-export default function AdminDashboard() {
+export default function AdminDashboard({
+    totalReservations,
+    totalRevenue,
+    activeCustomers,
+    upcomingEvents,
+    availableVenues,
+    totalVenues,
+    monthlyReservations,
+    revenueTrend,
+}: AdminDashboardProps) {
+
     const [reservations] = useState<Reservation[]>(initialReservations);
     const [statusFilter, setStatusFilter] = useState<ReservationStatus | 'All'>('All');
     const [filterMenuOpen, setFilterMenuOpen] = useState(false);
@@ -248,7 +303,7 @@ export default function AdminDashboard() {
                         icon={<Calendar className="size-5 text-[#6b103e]" />}
                         iconBg="bg-[#F7E3E0]"
                         label="Total Reservations"
-                        value="148"
+                        value={totalReservations.toLocaleString()}
                         note="↗ +12 this month"
                         noteColor="text-emerald-600"
                     />
@@ -256,7 +311,7 @@ export default function AdminDashboard() {
                         icon={<Banknote className="size-5 text-[#2c8042]" />}
                         iconBg="bg-emerald-50"
                         label="Total Revenue"
-                        value="₱1.2M"
+                        value={`₱${totalRevenue.toLocaleString()}`}
                         note="↗ +18% vs last month"
                         noteColor="text-emerald-600"
                     />
@@ -272,21 +327,21 @@ export default function AdminDashboard() {
                         icon={<UserRound className="size-5 text-amber-600" />}
                         iconBg="bg-amber-50"
                         label="Active Customers"
-                        value="312"
+                        value={activeCustomers.toLocaleString()}
                         note="Registered users"
                     />
                     <StatCard
                         icon={<Gift className="size-5 text-violet-600" />}
                         iconBg="bg-violet-50"
                         label="Upcoming Events"
-                        value="24"
+                        value={upcomingEvents.toLocaleString()}
                         note="Next 30 days"
                     />
                     <StatCard
                         icon={<Building2 className="size-5 text-sky-600" />}
                         iconBg="bg-sky-50"
                         label="Available Venues"
-                        value="9 / 12"
+                        value={`${availableVenues} / ${totalVenues}`}
                         note="3 currently booked"
                     />
                 </div>
@@ -319,13 +374,7 @@ export default function AdminDashboard() {
                                         strokeWidth={2}
                                         dot={false}
                                     />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="expenses"
-                                        stroke="#6B1E28"
-                                        strokeWidth={2}
-                                        dot={false}
-                                    />
+    
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -374,21 +423,48 @@ export default function AdminDashboard() {
                     {/* Utilization + Best sellers */}
                     <div className="rounded-xl border border-neutral-200 bg-white p-5">
                         <h2 className="font-serif text-lg font-semibold text-[#3A1A1F]">
-                            Monthly Reservations
+                            Monthly Reservation Activity
                         </h2>
+                        <p className="mt-1 text-xs text-neutral-500">
+                            Reservation submissions by month, including rejected requests.
+                        </p>
                         <div className="mt-4 h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={monthlyReservations}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#F0E5E2" vertical={false} />
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        stroke="#F0E5E2"
+                                        vertical={false}
+                                    />
+
                                     <XAxis
                                         dataKey="month"
                                         tick={{ fontSize: 12, fill: '#9CA3AF' }}
                                         axisLine={false}
                                         tickLine={false}
                                     />
-                                    <YAxis tick={{ fontSize: 12, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
-                                    <Tooltip />
-                                    <Bar dataKey="count" fill="#6B1E28" radius={[4, 4, 0, 0]} />
+
+                                    <YAxis
+                                        tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                    />
+
+                                    <Tooltip content={<CustomReservationTooltip />} />
+
+                                    <Bar
+                                        dataKey="nonRejected"
+                                        stackId="reservations"
+                                        fill="#6B1E28"
+                                        radius={[0, 0, 0, 0]}
+                                    />
+
+                                    <Bar
+                                        dataKey="rejected"
+                                        stackId="reservations"
+                                        fill="#B45309"
+                                        radius={[4, 4, 0, 0]}
+                                    />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

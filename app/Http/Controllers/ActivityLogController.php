@@ -36,6 +36,38 @@ class ActivityLogController extends Controller
                 'updated' => 'warning',
                 default => 'info',
             };
+            $attributeChanges = $log->attribute_changes ?? [];
+
+            $action = match (true) {
+                $subject instanceof \App\Models\Reservation &&
+                    $log->event === 'created'
+                    => 'Reservation Created',
+
+                $subject instanceof \App\Models\Reservation &&
+                    $log->event === 'updated' &&
+                    data_get($attributeChanges, 'attributes.status') === 'approved'
+                    => 'Reservation Approved',
+
+                $subject instanceof \App\Models\Reservation &&
+                    $log->event === 'updated' &&
+                    data_get($attributeChanges, 'attributes.status') === 'rejected'
+                    => 'Reservation Rejected',
+
+                $subject instanceof \App\Models\Reservation &&
+                    $log->event === 'updated' &&
+                    data_get($attributeChanges, 'attributes.status') === 'cancelled'
+                    => 'Reservation Cancelled',
+
+                $subject instanceof \App\Models\Reservation &&
+                    $log->event === 'updated'
+                    => 'Reservation Updated',
+
+                $subject instanceof \App\Models\Reservation &&
+                    $log->event === 'deleted'
+                    => 'Reservation Deleted',
+
+                default => ucfirst($log->event ?? $log->description),
+            };
 
             return [
                 'id' => (string) $log->id,
@@ -43,7 +75,7 @@ class ActivityLogController extends Controller
                 'causer' => $causerName,
                 'causerRole' => $causerRole,
                 'subject' => $subjectName,
-                'action' => ucfirst($log->event ?? $log->description),
+                'action' => $action,
                 'description' => $log->description,
                 'level' => $level,
                 'properties' => $log->attribute_changes?->toJson() ?? $log->properties?->toJson() ?? '{}',

@@ -7,60 +7,19 @@ import { venues } from '@/routes';
 import type { Venue } from '@/types';
 
 
-const venueList: Venue[] = [
-    {
-        id: 1,
-        name: 'Balay Alumni Function Hall',
-        category: 'Function Hall',
-        description:
-            'Fully air-conditioned function hall perfect for events, gatherings, and celebrations.',
-        capacity: '80-100 pax',
-        duration: '4 hours use',
-        amenities: ['Tables & Chairs', 'Basic Sound System', 'Fully Air-Conditioned', '+1 more'],
-        inclusions: ['Tables & Chairs', 'Basic Sound System', 'Fully Air-Conditioned', 'Big Parking Area'],
-        corkageFee: '₱500 for lechon.',
-        rate: '₱15,000',
-        available: true,
-        image: '/images/venue/venue-functionhall.png',
-    },
-    {
-        id: 2,
-        name: 'Balay Cafe Conference Room',
-        category: 'Conference',
-        description:
-            'Intimate air-conditioned conference room ideal for meetings and small group sessions.',
-        capacity: '10-20 persons',
-        duration: '4 hours use',
-        amenities: ['Long Table & Office Chairs', 'Basic Sound System', 'Flat Screen TV', '+3 more'],
-        inclusions: ['Long Table & Office Chairs', 'Basic Sound System', 'Flat Screen TV', 'Air-Conditioned'],
-        rate: '₱3,000',
-        available: true,
-        image: '/images/venue/venue-conference.png',
-    },
-    {
-        id: 3,
-        name: 'Whole Area of Balay Alumni',
-        category: 'Whole Venue',
-        description:
-            'The entire Balay Alumni venue — perfect for company occasions and large events.',
-        capacity: '150-200 persons',
-        duration: '4 hours use',
-        amenities: ['Function Hall', 'Cafe Mini Hall', 'Open Place at Balay Alumni', '+3 more'],
-        inclusions: ['Function Hall', 'Cafe Mini Hall', 'Open Place at Balay Alumni', 'Big Parking Area'],
-        rate: '₱30,000',
-        available: true,
-        image: '/images/venue/venue-wholearea.png',
-    },
-];
 
 const filters = ['All', 'Function Hall', 'Conference', 'Whole Venue'] as const;
 
-export default function Venues() {
+export default function Venues({
+    venues,
+}: {
+    venues: Venue[];
+}) {
     const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
     const [query, setQuery] = useState('');
     const [bookingVenue, setBookingVenue] = useState<Venue | null>(null);
 
-    const filteredVenues = venueList.filter((venue) => {
+    const filteredVenues = venues.filter((venue) => {
         const matchesFilter = activeFilter === 'All' || venue.category === activeFilter;
         const matchesQuery = venue.name.toLowerCase().includes(query.toLowerCase());
 
@@ -109,11 +68,11 @@ export default function Venues() {
                             className="overflow-hidden rounded-xl border border-neutral-200 bg-white"
                         >
                             <div className="relative aspect-video bg-neutral-100">
-                                <img
-                                    src={venue.image}
-                                    alt={venue.name}
-                                    className="size-full object-cover"
-                                />
+                            <img
+                            src={venue.image || '/images/venue/venue-functionhall.png'}
+                            alt={venue.name}
+                            className="size-full object-cover"
+                            />
                                 <span className="absolute left-3 top-3 rounded-full bg-[#6B1E28] px-3 py-1 text-xs font-medium text-white">
                                     {venue.category}
                                 </span>
@@ -133,31 +92,36 @@ export default function Venues() {
                                 <div className="flex items-center gap-4 text-sm text-neutral-500">
                                     <span className="flex items-center gap-1.5">
                                         <Users className="size-4" />
-                                        {venue.capacity}
+                                        {venue.capacity_label ?? `${venue.capacity_pax} pax`}
                                     </span>
                                     <span className="flex items-center gap-1.5">
                                         <Clock className="size-4" />
-                                        {venue.duration}
+                                        {venue.rate_duration}
                                     </span>
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                    {venue.amenities.map((amenity) => (
+                                {venue.inclusions.map((inclusion) => (
                                         <span
-                                            key={amenity}
+                                        key={inclusion}
                                             className="rounded-full bg-[#F7E3E0] px-3 py-1 text-xs font-medium text-[#6B1E28]"
                                         >
-                                            {amenity}
+                                            {inclusion}
                                         </span>
                                     ))}
                                 </div>
 
                                 <div className="mt-2 flex items-end justify-between">
                                     <div>
-                                        <p className="text-xs text-neutral-400">
-                                            Rate ({venue.duration})
-                                        </p>
-                                        <p className="text-xl font-semibold text-[#3A1A1F]">{venue.rate}</p>
+                                    <p className="text-xs text-neutral-400">
+                                        Rate ({venue.rate_duration})
+                                    </p>
+                                    <p className="text-xl font-semibold text-[#3A1A1F]">
+                                        ₱{Number(venue.rate).toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </p>
                                     </div>
                                     <button
                                         type="button"

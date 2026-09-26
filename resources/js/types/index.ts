@@ -8,14 +8,14 @@ export type Venue = {
     name: string;
     category: 'Function Hall' | 'Conference' | 'Whole Venue';
     description: string;
-    capacity: string;
-    duration: string;
-    amenities: string[];
-    inclusions: string[];
-    corkageFee?: string;
+    capacity_pax: number;
+    capacity_label?: string;
     rate: string;
+    rate_duration: string;
+    inclusions: string[];
+    note?: string;
+    image?: string;
     available: boolean;
-    image: string;
 };
 
 

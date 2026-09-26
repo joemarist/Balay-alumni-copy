@@ -61,7 +61,7 @@ const adminNavItems: NavItem[] = [
     },
     {
         title: 'Reservations',
-        href: reservations(),
+        href: '/admin/reservations',
         icon: CalendarCheck,
     },
     {

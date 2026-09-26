@@ -329,20 +329,13 @@ export function VenueFormModal({
                                 Image
                             </label>
                             <div className="relative flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-white px-6 py-8 hover:bg-neutral-50">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(event) => {
-                                        const file = event.target.files?.[0];
-
-                                        if (file) {
-                                            // Prototype: Use a local object URL to preview the image
-                                            const objectUrl = URL.createObjectURL(file);
-                                            updateField('image', objectUrl);
-                                        }
-                                    }}
-                                    className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
-                                />
+                            <input
+                                type="text"
+                                value={form.image}
+                                onChange={(event) => updateField('image', event.target.value)}
+                                placeholder="/images/venue/example.png"
+                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                            />
                                 <div className="flex flex-col items-center justify-center space-y-2 text-center">
                                     <div className="rounded-full bg-white p-3 shadow-sm">
                                         <ImagePlus className="size-6 text-[#6B1E28]" />

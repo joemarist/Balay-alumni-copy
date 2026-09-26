@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import {
     CalendarCheck,
     Clock,
@@ -12,13 +12,14 @@ import {
     Calendar,
     Check,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { reservations } from '@/routes';
+import { router } from '@inertiajs/react';
 
 type ResStatus = 'All' | 'Pending' | 'Approved' | 'Rejected' | 'Cancelled' | 'Completed';
 
 interface ReservationRecord {
-    id: string;
+    id: number;
     customer: string;
     email: string;
     phone: string;
@@ -35,166 +36,68 @@ interface ReservationRecord {
     notes: string;
 }
 
-const INITIAL_RESERVATIONS: ReservationRecord[] = [
-    {
-        id: 'B-2024-091',
-        customer: 'Maria Santos',
-        email: 'm.santos@email.ph',
-        phone: '+63 917 123 4567',
-        venue: 'Garden Terrace',
-        venueId: 2,
-        eventType: 'Alumni Reunion',
-        date: '2024-07-22',
-        startTime: '2:00 PM',
-        endTime: '8:00 PM',
-        guests: 65,
-        status: 'Approved',
-        amount: 6500,
-        downPaid: true,
-        notes: 'Requested podium and 2 wireless microphones.',
-    },
-    {
-        id: 'B-2024-090',
-        customer: 'Juan Dela Cruz',
-        email: 'juan.dc@email.ph',
-        phone: '+63 918 234 5678',
-        venue: 'Alumni Function Hall',
-        venueId: 1,
-        eventType: 'Birthday Party',
-        date: '2024-08-05',
-        startTime: '4:00 PM',
-        endTime: '10:00 PM',
-        guests: 90,
-        status: 'Pending',
-        amount: 15000,
-        downPaid: false,
-        notes: 'Awaiting 50% down payment verification.',
-    },
-    {
-        id: 'B-2024-089',
-        customer: 'Ana Reyes',
-        email: 'ana.r@email.ph',
-        phone: '+63 919 345 6789',
-        venue: 'Balay Function Hall',
-        venueId: 1,
-        eventType: 'Wedding Reception',
-        date: '2024-08-18',
-        startTime: '5:00 PM',
-        endTime: '11:00 PM',
-        guests: 100,
-        status: 'Approved',
-        amount: 15000,
-        downPaid: true,
-        notes: 'Requires special stage setup and extra chairs near the dance floor.',
-    },
-    {
-        id: 'B-2024-088',
-        customer: 'Marco Lim',
-        email: 'marco.lim@email.ph',
-        phone: '+63 920 456 7890',
-        venue: 'Balay Cafe Conference Room',
-        venueId: 2,
-        eventType: 'Team Meeting',
-        date: '2024-06-30',
-        startTime: '9:00 AM',
-        endTime: '1:00 PM',
-        guests: 18,
-        status: 'Completed',
-        amount: 3000,
-        downPaid: true,
-        notes: 'Completed without issues. Venue inspected.',
-    },
-    {
-        id: 'B-2024-087',
-        customer: 'Sofia Garcia',
-        email: 'sofia.g@email.ph',
-        phone: '+63 921 567 8901',
-        venue: 'Whole Area of Balay Alumni',
-        venueId: 3,
-        eventType: 'Corporate Seminar',
-        date: '2024-06-15',
-        startTime: '8:00 AM',
-        endTime: '5:00 PM',
-        guests: 160,
-        status: 'Cancelled',
-        amount: 30000,
-        downPaid: false,
-        notes: 'Customer requested cancellation due to weather advisory.',
-    },
-    {
-        id: 'B-2024-086',
-        customer: 'Rafael Torres',
-        email: 'r.torres@balay.ph',
-        phone: '+63 922 678 9012',
-        venue: 'Balay Cafe Conference Room',
-        venueId: 2,
-        eventType: 'Department Planning',
-        date: '2024-07-28',
-        startTime: '1:00 PM',
-        endTime: '5:00 PM',
-        guests: 15,
-        status: 'Pending',
-        amount: 3000,
-        downPaid: false,
-        notes: 'Special request for catering and projector setup.',
-    },
-    {
-        id: 'B-2024-085',
-        customer: 'Lucia Mendoza',
-        email: 'l.mendoza@email.ph',
-        phone: '+63 923 789 0123',
-        venue: 'Balay Alumni Function Hall',
-        venueId: 1,
-        eventType: 'Graduation Party',
-        date: '2024-07-30',
-        startTime: '3:00 PM',
-        endTime: '9:00 PM',
-        guests: 85,
-        status: 'Approved',
-        amount: 15000,
-        downPaid: true,
-        notes: 'Sound check scheduled at 1:30 PM.',
-    },
-    {
-        id: 'B-2024-084',
-        customer: 'Carlos Santos',
-        email: 'c.santos@email.ph',
-        phone: '+63 924 890 1234',
-        venue: 'Whole Area of Balay Alumni',
-        venueId: 3,
-        eventType: 'Alumni Grand Gala Dinner',
-        date: '2024-08-25',
-        startTime: '6:00 PM',
-        endTime: '11:00 PM',
-        guests: 190,
-        status: 'Pending',
-        amount: 30000,
-        downPaid: false,
-        notes: 'VIP event — requests red carpet setup and standby electrical technician.',
-    },
-    {
-        id: 'B-2024-082',
-        customer: 'Ben Cruz',
-        email: 'ben.c@email.ph',
-        phone: '+63 926 012 3456',
-        venue: 'Balay Cafe Conference Room',
-        venueId: 2,
-        eventType: 'Board Meeting',
-        date: '2024-07-19',
-        startTime: '10:00 AM',
-        endTime: '2:00 PM',
-        guests: 20,
-        status: 'Rejected',
-        amount: 3000,
-        downPaid: false,
-        notes: 'Schedule conflict with university official assembly.',
-    },
-];
 
 const STATUS_TABS: ResStatus[] = ['All', 'Pending', 'Approved', 'Completed', 'Cancelled', 'Rejected'];
 
+type BackendReservation = {
+    id: number;
+    event_type: string;
+    guest_count: number;
+    event_date: string;
+    start_time: string;
+    end_time: string;
+    special_requests: string | null;
+    total_amount: string;
+    status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+    venue: {
+        id: number;
+        name: string;
+    };
+};
+
 export default function Reservations() {
-    const [reservationsList, setReservationsList] = useState<ReservationRecord[]>(INITIAL_RESERVATIONS);
+    const { reservations = [] } = usePage<{
+        reservations?: BackendReservation[];
+    }>().props;
+
+    const databaseReservations = useMemo<ReservationRecord[]>(
+        () =>
+            reservations.map((reservation) => ({
+                id: reservation.id,
+                customer: reservation.user?.name ?? 'Unknown Customer',
+                email: reservation.user?.email ?? '',
+                phone: '',
+                venue: reservation.venue?.name ?? 'Unknown Venue',
+                venueId: reservation.venue?.id ?? 0,
+                eventType: reservation.event_type,
+                date: reservation.event_date,
+                startTime: reservation.start_time,
+                endTime: reservation.end_time,
+                guests: reservation.guest_count,
+                status: (
+                    reservation.status.charAt(0).toUpperCase() +
+                    reservation.status.slice(1)
+                ) as ReservationRecord['status'],
+                amount: Number(reservation.total_amount),
+                downPaid: false,
+                notes: reservation.special_requests ?? '',
+            })),
+        [reservations],
+    );
+
+    const [reservationsList, setReservationsList] = useState<
+        ReservationRecord[]
+    >(databaseReservations);
+
+    useEffect(() => {
+        setReservationsList(databaseReservations);
+    }, [databaseReservations]);
+
     const [activeTab, setActiveTab] = useState<ResStatus>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState('');
@@ -237,28 +140,41 @@ export default function Reservations() {
             const matchesDate = !dateFilter || r.date === dateFilter;
             const query = searchQuery.toLowerCase();
             const matchesQuery =
-                !query ||
-                r.id.toLowerCase().includes(query) ||
-                r.customer.toLowerCase().includes(query) ||
-                r.email.toLowerCase().includes(query) ||
-                r.venue.toLowerCase().includes(query) ||
-                r.eventType.toLowerCase().includes(query);
+            !query ||
+            r.id.toString().toLowerCase().includes(query) ||
+            r.customer.toLowerCase().includes(query) ||
+            r.email.toLowerCase().includes(query) ||
+            r.venue.toLowerCase().includes(query) ||
+            r.eventType.toLowerCase().includes(query);
 
             return matchesTab && matchesDate && matchesQuery;
         });
     }, [reservationsList, activeTab, dateFilter, searchQuery]);
 
     // Actions
-    const handleStatusChange = (id: string, newStatus: ReservationRecord['status']) => {
-        setReservationsList((prev) =>
-            prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)),
-        );
+    const handleStatusChange = (id: number, newStatus: ReservationRecord['status']) => {
+        const mappedStatus = newStatus.toLowerCase() as
+            | 'pending'
+            | 'approved'
+            | 'rejected'
+            | 'cancelled'
+            | 'completed';
 
-        if (selectedRes && selectedRes.id === id) {
-            setSelectedRes((prev) => (prev ? { ...prev, status: newStatus } : null));
-        }
+        router.patch(`/admin/reservations/${id}/status`, {
+            status: mappedStatus,
+        }, {
+            onSuccess: () => {
+                setReservationsList((prev) =>
+                    prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)),
+                );
 
-        showToast(`Reservation #${id} updated to ${newStatus}`);
+                if (selectedRes && selectedRes.id === id) {
+                    setSelectedRes((prev) => (prev ? { ...prev, status: newStatus } : null));
+                }
+
+                showToast(`Reservation #${id} updated to ${newStatus}`);
+            },
+        });
     };
 
     const handleSaveNote = () => {

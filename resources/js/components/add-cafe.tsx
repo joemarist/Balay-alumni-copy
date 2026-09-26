@@ -13,7 +13,14 @@ export type AdminMenuItem = {
     available: boolean;
 };
 
-export type CafeItemFormValues = Omit<AdminMenuItem, 'id'>;
+export type CafeItemFormValues = {
+    name: string;
+    description: string;
+    category: MenuCategory;
+    price: number;
+    image?: File;
+    available: boolean;
+};
 
 const categories: MenuCategory[] = ['Coffee', 'Non-Coffee', 'Snacks', 'Meals', 'Desserts'];
 
@@ -23,7 +30,7 @@ function emptyFormState() {
         description: '',
         category: '' as MenuCategory | '',
         price: '',
-        image: '',
+        image: undefined as File | undefined,
         available: true,
     };
 }
@@ -34,7 +41,7 @@ function itemToFormState(item: AdminMenuItem) {
         description: item.description,
         category: item.category,
         price: String(item.price),
-        image: item.image ?? '',
+        image: undefined as File | undefined,
         available: item.available,
     };
 }
@@ -89,11 +96,22 @@ export function CafeItemFormModal({
     const [form, setForm] = useState(() =>
         initialItem ? itemToFormState(initialItem) : emptyFormState(),
     );
+
+    const [imagePreview, setImagePreview] = useState<string>(
+        initialItem?.image
+            ? initialItem.image.startsWith('/')
+                ? initialItem.image
+                : `/storage/${initialItem.image}`
+            : '',
+    );
     const [originalForm] = useState(form);
 
     const missingFields = getMissingFields(form);
     const isValid = missingFields.length === 0;
-    const isDirty = mode === 'add' ? true : !formsAreEqual(form, originalForm);
+    const isDirty =
+        mode === 'add'
+            ? true
+            : !formsAreEqual(form, originalForm) || !!form.image;
     const canSubmit = isValid && isDirty;
 
     function updateField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -139,9 +157,9 @@ export function CafeItemFormModal({
                     <div className="flex flex-col gap-4">
                         {mode === 'edit' && (
                             <div className="aspect-square w-32 overflow-hidden rounded-lg bg-neutral-100">
-                                {form.image ? (
+                                {imagePreview ? (
                                     <img
-                                        src={form.image}
+                                        src={imagePreview}
                                         alt={form.name}
                                         className="size-full object-cover"
                                     />
@@ -220,35 +238,55 @@ export function CafeItemFormModal({
                             <label className="mb-1.5 block text-sm font-medium text-neutral-700">
                                 Image
                             </label>
-                            <div className="relative flex w-full flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-300 bg-white px-6 py-8 hover:bg-neutral-50">
+
+                            <div className="relative flex min-h-48 w-full flex-col items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-neutral-300 bg-white hover:bg-neutral-50">
+
+                                {/* Image Preview */}
+                                {imagePreview ? (
+                                    <img
+                                        src={imagePreview}
+                                        alt="Selected menu item"
+                                        className="absolute inset-0 size-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center space-y-2 text-center">
+                                        <div className="rounded-full bg-white p-3 shadow-sm">
+                                            <ImagePlus className="size-6 text-[#6B1E28]" />
+                                        </div>
+
+                                        <div className="text-sm font-medium text-neutral-700">
+                                            Click to upload image
+                                        </div>
+
+                                        <p className="text-xs text-neutral-500">
+                                            PNG, JPG, JPEG or WEBP (max. 5MB)
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* File Input */}
                                 <input
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/png,image/jpeg,image/jpg,image/webp"
                                     onChange={(event) => {
                                         const file = event.target.files?.[0];
 
-                                        if (file) {
-                                            // Prototype: Use a local object URL to preview the image
-                                            const objectUrl = URL.createObjectURL(file);
-                                            updateField('image', objectUrl);
-                                        }
+                                        if (!file) return;
+
+                                        updateField('image', file);
+
+                                        const objectUrl = URL.createObjectURL(file);
+                                        setImagePreview(objectUrl);
                                     }}
                                     className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
                                 />
-                                <div className="flex flex-col items-center justify-center space-y-2 text-center">
-                                    <div className="rounded-full bg-white p-3 shadow-sm">
-                                        <ImagePlus className="size-6 text-[#6B1E28]" />
-                                    </div>
-                                    <div className="text-sm font-medium text-neutral-700">
-                                        Click to upload image
-                                    </div>
-                                    <p className="text-xs text-neutral-500">
-                                        SVG, PNG, JPG or GIF (max. 5MB)
-                                    </p>
-                                </div>
                             </div>
-                            {form.image && form.image.startsWith('blob:') && (
-                                <p className="mt-2 text-xs text-green-600">Image selected for upload.</p>
+
+                            {/* Selected File Name */}
+                            {form.image && (
+                                <p className="mt-2 text-xs text-green-600">
+                                    Image selected: {form.image.name}
+                                </p>
                             )}
                         </div>
 
@@ -265,14 +303,12 @@ export function CafeItemFormModal({
                                 type="button"
                                 onClick={() => updateField('available', !form.available)}
                                 aria-label="Toggle availability"
-                                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                                    form.available ? 'bg-emerald-500' : 'bg-neutral-300'
-                                }`}
+                                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${form.available ? 'bg-emerald-500' : 'bg-neutral-300'
+                                    }`}
                             >
                                 <span
-                                    className={`absolute left-0 top-0.5 size-5 rounded-full bg-white transition-transform ${
-                                        form.available ? 'translate-x-[22px]' : 'translate-x-0.5'
-                                    }`}
+                                    className={`absolute left-0 top-0.5 size-5 rounded-full bg-white transition-transform ${form.available ? 'translate-x-[22px]' : 'translate-x-0.5'
+                                        }`}
                                 />
                             </button>
                         </label>
