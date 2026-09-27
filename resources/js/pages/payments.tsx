@@ -806,22 +806,56 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                                 </td>
                                                 <td className="px-4 py-3.5">
                                                 {viewMode === 'user' ? (
+                                                <div className="flex flex-col items-start gap-1.5">
                                                     <span
-                                                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getReservationStatusBadge(
+                                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
+                                                            p.status,
+                                                        )}`}
+                                                    >
+                                                        {p.status === 'Confirmed' && (
+                                                            <CheckCircle className="size-3" />
+                                                        )}
+
+                                                        {p.status === 'Pending' && (
+                                                            <Clock className="size-3" />
+                                                        )}
+
+                                                        {p.status === 'Rejected' && (
+                                                            <AlertCircle className="size-3" />
+                                                        )}
+
+                                                        Payment: {p.status}
+                                                    </span>
+
+                                                    <span
+                                                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${getReservationStatusBadge(
                                                             p.reservationStatus,
                                                         )}`}
                                                     >
                                                         Reservation: {p.reservationStatus ?? 'Pending'}
                                                     </span>
-                                                ) : (
-                                                    <span
-                                                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
-                                                            p.status,
-                                                        )}`}
-                                                    >
-                                                        Payment: {p.status}
-                                                    </span>
-                                                )}
+                                                </div>
+                                            ) : (
+                                                <span
+                                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
+                                                        p.status,
+                                                    )}`}
+                                                >
+                                                    {p.status === 'Confirmed' && (
+                                                        <CheckCircle className="size-3" />
+                                                    )}
+
+                                                    {p.status === 'Pending' && (
+                                                        <Clock className="size-3" />
+                                                    )}
+
+                                                    {p.status === 'Rejected' && (
+                                                        <AlertCircle className="size-3" />
+                                                    )}
+
+                                                    Payment: {p.status}
+                                                </span>
+                                            )}
                                                 </td>
                                                 <td className="px-4 py-3.5 text-right">
                                                     <div className="flex items-center justify-end gap-1.5">

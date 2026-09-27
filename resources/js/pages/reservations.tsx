@@ -4,6 +4,7 @@ import {
     Clock,
     CheckCircle,
     XCircle,
+    AlertCircle,
     Ban,
     Eye,
     Search,
@@ -32,7 +33,7 @@ interface ReservationRecord {
     guests: number;
     status: 'Pending' | 'Approved' | 'Rejected' | 'Cancelled' | 'Completed';
     amount: number;
-    downPaid: boolean;
+    paymentStatus: 'Unpaid' | 'Pending' | 'Confirmed' | 'Rejected';
     notes: string;
 }
 
@@ -48,6 +49,10 @@ type BackendReservation = {
     end_time: string;
     special_requests: string | null;
     total_amount: string;
+    payment_status: 'unpaid' | 'pending' | 'confirmed' | 'rejected';
+    payment_amount: string | null;
+    payment_reference: string | null;
+    payment_proof: string | null;
     status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed';
     user: {
         id: number;
@@ -84,7 +89,16 @@ export default function Reservations() {
                     reservation.status.slice(1)
                 ) as ReservationRecord['status'],
                 amount: Number(reservation.total_amount),
-                downPaid: false,
+
+                paymentStatus:
+                    reservation.payment_status === 'confirmed'
+                        ? 'Confirmed'
+                        : reservation.payment_status === 'rejected'
+                        ? 'Rejected'
+                        : reservation.payment_status === 'pending'
+                        ? 'Pending'
+                        : 'Unpaid',
+
                 notes: reservation.special_requests ?? '',
             })),
         [reservations],
@@ -190,18 +204,28 @@ return;
     };
 
     const handleExportCSV = () => {
-        const headers = ['Booking ID,Customer,Email,Phone,Venue,Event Type,Date,Time,Guests,Amount,Down Payment,Status\n'];
+        const headers = [
+            'Booking ID,Customer,Email,Phone,Venue,Event Type,Date,Time,Guests,Amount,Payment Status,Reservation Status\n',
+        ];
+
         const rows = filteredReservations.map(
             (r) =>
-                `"${r.id}","${r.customer}","${r.email}","${r.phone}","${r.venue}","${r.eventType}","${r.date}","${r.startTime} - ${r.endTime}",${r.guests},${r.amount},"${r.downPaid ? 'Yes' : 'No'}","${r.status}"\n`,
+                `"${r.id}","${r.customer}","${r.email}","${r.phone}","${r.venue}","${r.eventType}","${r.date}","${r.startTime} - ${r.endTime}",${r.guests},${r.amount},"${r.paymentStatus}","${r.status}"\n`,
         );
-        const blob = new Blob([headers.concat(rows).join('')], { type: 'text/csv' });
+
+        const blob = new Blob([headers.concat(rows).join('')], {
+            type: 'text/csv',
+        });
+
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
+
         a.href = url;
         a.download = `balay_reservations_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
+
         window.URL.revokeObjectURL(url);
+
         showToast('Exported reservations to CSV.');
     };
 
@@ -216,6 +240,24 @@ return;
             case 'Rejected':
                 return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
             case 'Cancelled':
+                return 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
+        }
+    };
+
+    const getPaymentStatusBadge = (
+        status: ReservationRecord['paymentStatus'],
+    ) => {
+        switch (status) {
+            case 'Confirmed':
+                return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800';
+
+            case 'Pending':
+                return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800';
+
+            case 'Rejected':
+                return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800';
+
+            case 'Unpaid':
                 return 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700';
         }
     };
@@ -452,15 +494,36 @@ return;
                                                 {res.guests} pax
                                             </td>
                                             <td className="px-4 py-3.5">
-                                                <div className="flex items-center gap-1.5 font-semibold text-neutral-900 dark:text-neutral-100">
-                                                    <span>₱{res.amount.toLocaleString()}</span>
-                                                    {res.downPaid && (
-                                                        <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                                                            DP Paid
-                                                        </span>
+                                            <div className="flex flex-col items-start gap-1.5">
+                                                <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                                                    ₱{res.amount.toLocaleString()}
+                                                </span>
+
+                                                <span
+                                                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold ${getPaymentStatusBadge(
+                                                        res.paymentStatus,
+                                                    )}`}
+                                                >
+                                                    {res.paymentStatus === 'Confirmed' && (
+                                                        <CheckCircle className="size-3" />
                                                     )}
-                                                </div>
-                                            </td>
+
+                                                    {res.paymentStatus === 'Pending' && (
+                                                        <Clock className="size-3" />
+                                                    )}
+
+                                                    {res.paymentStatus === 'Rejected' && (
+                                                        <XCircle className="size-3" />
+                                                    )}
+
+                                                    {res.paymentStatus === 'Unpaid' && (
+                                                        <AlertCircle className="size-3" />
+                                                    )}
+
+                                                    Payment: {res.paymentStatus}
+                                                </span>
+                                            </div>
+                                        </td>
                                             <td className="px-4 py-3.5">
                                                 <span
                                                     className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
@@ -626,17 +689,34 @@ return;
                                     </p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xs text-neutral-400">50% Downpayment</p>
-                                    <span
-                                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                            selectedRes.downPaid
-                                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                                : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                        }`}
-                                    >
-                                        {selectedRes.downPaid ? 'Verified & Paid' : 'Pending Payment'}
-                                    </span>
-                                </div>
+                                <p className="text-xs text-neutral-400">
+                                    Payment Status
+                                </p>
+
+                                <span
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${getPaymentStatusBadge(
+                                        selectedRes.paymentStatus,
+                                    )}`}
+                                >
+                                    {selectedRes.paymentStatus === 'Confirmed' && (
+                                        <CheckCircle className="size-3.5" />
+                                    )}
+
+                                    {selectedRes.paymentStatus === 'Pending' && (
+                                        <Clock className="size-3.5" />
+                                    )}
+
+                                    {selectedRes.paymentStatus === 'Rejected' && (
+                                        <XCircle className="size-3.5" />
+                                    )}
+
+                                    {selectedRes.paymentStatus === 'Unpaid' && (
+                                        <AlertCircle className="size-3.5" />
+                                    )}
+
+                                    {selectedRes.paymentStatus}
+                                </span>
+                            </div>
                             </div>
 
                             {/* Internal Staff Notes */}
