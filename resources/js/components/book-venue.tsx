@@ -130,8 +130,16 @@ export function BookVenueModal({
             return;
         }
 
-        if (!form.guestCount || Number(form.guestCount) < 1) {
-            alert('Please enter the number of guests.');
+        const guestCount = Number(form.guestCount);
+
+        if (
+            !form.guestCount ||
+            guestCount < venue.minimum_capacity_pax ||
+            guestCount > venue.maximum_capacity_pax
+        ) {
+            alert(
+                `This venue accepts between ${venue.minimum_capacity_pax} and ${venue.maximum_capacity_pax} guests.`,
+            );
             setStep(1);
             return;
         }
@@ -218,7 +226,7 @@ export function BookVenueModal({
                                 <div className="rounded-lg bg-white p-3">
                                     <p className="text-xs text-neutral-500">Capacity</p>
                                     <p className="font-semibold text-[#3A1A1F]">
-                                    {venue.capacity_label ?? `${venue.capacity_pax} pax`}</p>
+                                    {venue.minimum_capacity_pax}-{venue.maximum_capacity_pax} pax</p>
                                 </div>
                                 <div className="rounded-lg bg-white p-3">
                                 <p className="text-xs text-neutral-500">Rate ({venue.rate_duration})</p>
@@ -270,13 +278,20 @@ export function BookVenueModal({
                                     Guest Count
                                 </label>
                                 <input
-                                    type="number"
-                                    min={1}
-                                    value={form.guestCount}
-                                    onChange={(event) => updateForm('guestCount', event.target.value)}
-                                    placeholder="Number of guests"
-                                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:outline-none"
-                                />
+                                type="number"
+                                min={venue.minimum_capacity_pax}
+                                max={venue.maximum_capacity_pax}
+                                value={form.guestCount}
+                                onChange={(event) =>
+                                    updateForm('guestCount', event.target.value)
+                                }
+                                placeholder={`${venue.minimum_capacity_pax}-${venue.maximum_capacity_pax} guests`}
+                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:outline-none"
+                            />
+                            <p className="mt-1.5 text-xs text-neutral-500">
+                                This venue accepts bookings for {venue.minimum_capacity_pax}-
+                                {venue.maximum_capacity_pax} guests.
+                            </p>
                             </div>
                         </div>
                     )}

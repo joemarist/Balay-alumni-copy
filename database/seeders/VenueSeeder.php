@@ -13,8 +13,11 @@ class VenueSeeder extends Seeder
             'name' => 'Balay Alumni Function Hall',
             'description' => 'Fully air-conditioned function hall perfect for events, gatherings, and celebrations.',
             'category' => 'Function Hall',
-            'capacity_pax' => 100,
-            'capacity_label' => '80-100 pax',
+
+            // Capacity range: 80–100 pax
+            'minimum_capacity_pax' => 80,
+            'maximum_capacity_pax' => 100,
+
             'rate' => 15000,
             'rate_duration' => '4 hours use',
             'inclusions' => [
@@ -32,8 +35,11 @@ class VenueSeeder extends Seeder
             'name' => 'Balay Cafe Conference Room',
             'description' => 'Intimate air-conditioned conference room ideal for meetings and small group sessions.',
             'category' => 'Conference',
-            'capacity_pax' => 20,
-            'capacity_label' => '10-20 persons',
+
+            // Capacity range: 10–20 pax
+            'minimum_capacity_pax' => 10,
+            'maximum_capacity_pax' => 20,
+
             'rate' => 3000,
             'rate_duration' => '4 hours use',
             'inclusions' => [
@@ -51,8 +57,11 @@ class VenueSeeder extends Seeder
             'name' => 'Whole Area of Balay Alumni',
             'description' => 'The entire Balay Alumni venue — perfect for company occasions and large events.',
             'category' => 'Whole Venue',
-            'capacity_pax' => 200,
-            'capacity_label' => '150-200 persons',
+
+            // Capacity range: 150–200 pax
+            'minimum_capacity_pax' => 150,
+            'maximum_capacity_pax' => 200,
+
             'rate' => 30000,
             'rate_duration' => '4 hours use',
             'inclusions' => [

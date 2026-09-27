@@ -92,7 +92,7 @@ export default function Venues({
                                 <div className="flex items-center gap-4 text-sm text-neutral-500">
                                     <span className="flex items-center gap-1.5">
                                         <Users className="size-4" />
-                                        {venue.capacity_label ?? `${venue.capacity_pax} pax`}
+                                        {venue.minimum_capacity_pax}-{venue.maximum_capacity_pax} pax
                                     </span>
                                     <span className="flex items-center gap-1.5">
                                         <Clock className="size-4" />

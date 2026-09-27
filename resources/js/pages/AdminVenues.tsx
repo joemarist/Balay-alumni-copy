@@ -18,8 +18,8 @@ type BackendVenue = {
     name: string;
     description: string;
     category: 'Function Hall' | 'Conference' | 'Whole Venue';
-    capacity_pax: number;
-    capacity_label: string | null;
+    minimum_capacity_pax: number;
+    maximum_capacity_pax: number;
     rate: string | number;
     rate_duration: string;
     inclusions: string[];
@@ -38,8 +38,8 @@ export default function AdminVenues() {
         name: venue.name,
         description: venue.description,
         category: venue.category,
-        capacityPax: venue.capacity_pax,
-        capacityLabel: venue.capacity_label ?? undefined,
+        minimumCapacityPax: venue.minimum_capacity_pax,
+        maximumCapacityPax: venue.maximum_capacity_pax,
         rate: Number(venue.rate),
         rateDuration: venue.rate_duration,
         inclusions: venue.inclusions ?? [],
@@ -90,11 +90,15 @@ export default function AdminVenues() {
         formData.append('name', values.name);
         formData.append('description', values.description);
         formData.append('category', values.category);
-        formData.append('capacity_pax', String(values.capacityPax));
+        formData.append(
+            'minimum_capacity_pax',
+            String(values.minimumCapacityPax),
+        );
 
-        if (values.capacityLabel) {
-            formData.append('capacity_label', values.capacityLabel);
-        }
+        formData.append(
+            'maximum_capacity_pax',
+            String(values.maximumCapacityPax),
+        );
 
         formData.append('rate', String(values.rate));
         formData.append('rate_duration', values.rateDuration);
@@ -133,11 +137,15 @@ export default function AdminVenues() {
         formData.append('name', values.name);
         formData.append('description', values.description);
         formData.append('category', values.category);
-        formData.append('capacity_pax', String(values.capacityPax));
+        formData.append(
+            'minimum_capacity_pax',
+            String(values.minimumCapacityPax),
+        );
 
-        if (values.capacityLabel) {
-            formData.append('capacity_label', values.capacityLabel);
-        }
+        formData.append(
+            'maximum_capacity_pax',
+            String(values.maximumCapacityPax),
+        );
 
         formData.append('rate', String(values.rate));
         formData.append('rate_duration', values.rateDuration);
@@ -258,7 +266,7 @@ export default function AdminVenues() {
                                 <div className="flex items-center gap-4 text-sm text-neutral-500">
                                     <span className="flex items-center gap-1.5">
                                         <Users className="size-4" />
-                                        {venue.capacityLabel || `${venue.capacityPax} pax`}
+                                        {venue.minimumCapacityPax}-{venue.maximumCapacityPax} pax
                                     </span>
                                     <span className="flex items-center gap-1.5">
                                         <Clock className="size-4" />

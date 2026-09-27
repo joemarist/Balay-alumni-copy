@@ -13,8 +13,8 @@ class Venue extends Model
         'name',
         'description',
         'category',
-        'capacity_pax',
-        'capacity_label',
+        'minimum_capacity_pax',
+        'maximum_capacity_pax',
         'rate',
         'rate_duration',
         'inclusions',
@@ -26,7 +26,8 @@ class Venue extends Model
     protected function casts(): array
     {
         return [
-            'capacity_pax' => 'integer',
+            'minimum_capacity_pax' => 'integer',
+            'maximum_capacity_pax' => 'integer',
             'rate' => 'decimal:2',
             'inclusions' => 'array',
             'available' => 'boolean',

@@ -8,8 +8,8 @@ export type Venue = {
     name: string;
     category: 'Function Hall' | 'Conference' | 'Whole Venue';
     description: string;
-    capacity_pax: number;
-    capacity_label?: string;
+    minimum_capacity_pax: number;
+    maximum_capacity_pax: number;
     rate: string;
     rate_duration: string;
     inclusions: string[];

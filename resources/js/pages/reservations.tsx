@@ -551,9 +551,18 @@ return;
                                                         <>
                                                             <button
                                                                 type="button"
+                                                                disabled={res.paymentStatus !== 'Confirmed'}
                                                                 onClick={() => handleStatusChange(res.id, 'Approved')}
-                                                                className="rounded-lg p-1.5 text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-                                                                title="Approve Reservation"
+                                                                className={`rounded-lg p-1.5 transition-colors ${
+                                                                    res.paymentStatus === 'Confirmed'
+                                                                        ? 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50'
+                                                                        : 'cursor-not-allowed text-neutral-300 dark:text-neutral-700'
+                                                                }`}
+                                                                title={
+                                                                    res.paymentStatus === 'Confirmed'
+                                                                        ? 'Approve Reservation'
+                                                                        : 'Payment must be confirmed before approval'
+                                                                }
                                                             >
                                                                 <CheckCircle className="size-4" />
                                                             </button>

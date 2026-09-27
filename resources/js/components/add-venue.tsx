@@ -8,8 +8,8 @@ export type AdminVenue = {
     name: string;
     description: string;
     category: VenueCategory;
-    capacityPax: number;
-    capacityLabel?: string;
+    minimumCapacityPax: number;
+    maximumCapacityPax: number;
     rate: number;
     rateDuration: string;
     inclusions: string[];
@@ -30,8 +30,8 @@ function emptyFormState() {
         name: '',
         description: '',
         category: '' as VenueCategory | '',
-        capacityPax: '',
-        capacityLabel: '',
+        minimumCapacityPax: '',
+        maximumCapacityPax: '',
         rate: '',
         rateDuration: '',
         inclusionsText: '',
@@ -47,8 +47,8 @@ function venueToFormState(venue: AdminVenue) {
         name: venue.name,
         description: venue.description,
         category: venue.category,
-        capacityPax: String(venue.capacityPax),
-        capacityLabel: venue.capacityLabel ?? '',
+        minimumCapacityPax: '',
+        maximumCapacityPax: '',
         rate: String(venue.rate),
         rateDuration: venue.rateDuration,
         inclusionsText: venue.inclusions.join('\n'),
@@ -74,8 +74,27 @@ function getMissingFields(form: ReturnType<typeof emptyFormState>): string[] {
         missing.push('Type')
     }
 
-    if (!form.capacityPax || Number(form.capacityPax) <= 0) {
-        missing.push('Capacity (pax)')
+    if (
+        !form.minimumCapacityPax ||
+        Number(form.minimumCapacityPax) <= 0
+    ) {
+        missing.push('Minimum Capacity')
+    }
+
+    if (
+        !form.maximumCapacityPax ||
+        Number(form.maximumCapacityPax) <= 0
+    ) {
+        missing.push('Maximum Capacity')
+    }
+
+    if (
+        form.minimumCapacityPax &&
+        form.maximumCapacityPax &&
+        Number(form.maximumCapacityPax) <
+            Number(form.minimumCapacityPax)
+    ) {
+        missing.push('Maximum Capacity must be greater than or equal to Minimum Capacity')
     }
 
     if (!form.rate || Number(form.rate) <= 0) {
@@ -101,8 +120,8 @@ function formsAreEqual(
         a.name === b.name &&
         a.description === b.description &&
         a.category === b.category &&
-        a.capacityPax === b.capacityPax &&
-        a.capacityLabel === b.capacityLabel &&
+        a.minimumCapacityPax === b.minimumCapacityPax &&
+        a.maximumCapacityPax === b.maximumCapacityPax &&
         a.rate === b.rate &&
         a.rateDuration === b.rateDuration &&
         a.inclusionsText === b.inclusionsText &&
@@ -147,8 +166,8 @@ export function VenueFormModal({
             name: form.name,
             description: form.description,
             category: (form.category || 'Function Hall') as VenueCategory,
-            capacityPax: Number(form.capacityPax) || 0,
-            capacityLabel: form.capacityLabel || undefined,
+            minimumCapacityPax: Number(form.minimumCapacityPax) || 0,
+            maximumCapacityPax: Number(form.maximumCapacityPax) || 0,
             rate: Number(form.rate) || 0,
             rateDuration: form.rateDuration,
             inclusions: form.inclusionsText
@@ -248,32 +267,40 @@ export function VenueFormModal({
                                     ))}
                                 </select>
                             </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                                    Capacity (pax)
+                                    Minimum Capacity (pax)
                                 </label>
                                 <input
                                     type="number"
                                     min={1}
-                                    value={form.capacityPax}
-                                    onChange={(event) => updateField('capacityPax', event.target.value)}
-                                    placeholder="50"
+                                    value={form.minimumCapacityPax}
+                                    onChange={(event) =>
+                                        updateField('minimumCapacityPax', event.target.value)
+                                    }
+                                    placeholder="20"
                                     className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
                                 />
                             </div>
-                        </div>
 
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                                Capacity Label <span className="text-neutral-400">(optional)</span>
-                            </label>
-                            <input
-                                type="text"
-                                value={form.capacityLabel}
-                                onChange={(event) => updateField('capacityLabel', event.target.value)}
-                                placeholder="e.g. 80-100 pax"
-                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
-                            />
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                                    Maximum Capacity (pax)
+                                </label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={form.maximumCapacityPax}
+                                    onChange={(event) =>
+                                        updateField('maximumCapacityPax', event.target.value)
+                                    }
+                                    placeholder="100"
+                                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                                />
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">

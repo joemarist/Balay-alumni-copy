@@ -164,31 +164,62 @@ public function updatePaymentStatus(
     );
 }
 
-    public function updateStatus(
-        Request $request,
-        Reservation $reservation,
-    ): RedirectResponse {
-        $user = Auth::user();
+public function updateStatus(
+    Request $request,
+    Reservation $reservation,
+): RedirectResponse {
+    $user = Auth::user();
 
-        abort_unless(
-            $user instanceof User &&
-            $user->hasAnyRole(['admin', 'superadmin', 'staff']),
-            403,
-        );
+    abort_unless(
+        $user instanceof User &&
+        $user->hasAnyRole(['admin', 'superadmin', 'staff']),
+        403,
+    );
 
-        $validated = $request->validate([
-            'status' => [
-                'required',
-                'in:pending,approved,rejected,cancelled,completed',
-            ],
+    $validated = $request->validate([
+        'status' => [
+            'required',
+            'in:pending,approved,rejected,cancelled,completed',
+        ],
+    ]);
+
+    /*
+     * A reservation cannot be approved unless
+     * its payment has already been confirmed.
+     */
+    if (
+        $validated['status'] === 'approved' &&
+        $reservation->payment_status !== 'confirmed'
+    ) {
+        throw ValidationException::withMessages([
+            'status' => 'This reservation cannot be approved until the payment has been confirmed.',
         ]);
-
-        $reservation->update([
-            'status' => $validated['status'],
-        ]);
-
-        return back()->with('success', 'Reservation status updated.');
     }
+
+    if ($validated['status'] === 'approved') {
+        $venue = $reservation->venue;
+
+        if (
+            $reservation->guest_count < $venue->minimum_capacity_pax ||
+            $reservation->guest_count > $venue->maximum_capacity_pax
+        ) {
+            throw ValidationException::withMessages([
+                'status' =>
+                    'This reservation cannot be approved because the guest count is outside the venue capacity range of ' .
+                    $venue->minimum_capacity_pax .
+                    '-' .
+                    $venue->maximum_capacity_pax .
+                    ' pax.',
+            ]);
+        }
+    }
+
+    $reservation->update([
+        'status' => $validated['status'],
+    ]);
+
+    return back()->with('success', 'Reservation status updated.');
+}
 
     public function store(Request $request): RedirectResponse
     {
@@ -214,9 +245,17 @@ public function updatePaymentStatus(
                 ]);
             }
 
-            if ($validated['guest_count'] > $venue->capacity_pax) {
+            if (
+                $validated['guest_count'] < $venue->minimum_capacity_pax ||
+                $validated['guest_count'] > $venue->maximum_capacity_pax
+            ) {
                 throw ValidationException::withMessages([
-                    'guest_count' => 'The number of guests exceeds the venue capacity.',
+                    'guest_count' =>
+                        'The number of guests must be between ' .
+                        $venue->minimum_capacity_pax .
+                        ' and ' .
+                        $venue->maximum_capacity_pax .
+                        ' pax for this venue.',
                 ]);
             }
 
