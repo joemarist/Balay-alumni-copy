@@ -152,11 +152,23 @@ export default function AdminPackages() {
                                 )}
 
                                 <CardContent className="flex flex-1 flex-col p-7">
-                                    <Badge
-                                        className={`mb-5 w-fit rounded-full px-3.5 py-1.5 text-xs font-bold ${styles.badge}`}
-                                    >
-                                        {pkg.type}
-                                    </Badge>
+                                <div className="mb-5 flex items-center gap-2">
+                                <Badge
+                                    className={`w-fit rounded-full px-3.5 py-1.5 text-xs font-bold ${styles.badge}`}
+                                >
+                                    {pkg.type}
+                                </Badge>
+
+                                <Badge
+                                className={`w-fit rounded-full px-3.5 py-1.5 text-xs font-semibold ${
+                                    pkg.available
+                                        ? 'bg-green-100 text-green-700 hover:bg-green-100'
+                                        : 'bg-red-100 text-red-700 hover:bg-red-100'
+                                }`}
+                            >
+                                {pkg.available ? '● Available' : '● Unavailable'}
+                                </Badge>
+                            </div>
 
                                     <h2 className="font-serif text-2xl font-bold text-[#161622]">
                                         {pkg.name}

@@ -142,16 +142,6 @@ function getMissingFields(
         missing.push('Valid Add-on Name and Price');
     }
 
-    const hasInvalidVenueExtensionRate = form.venueIds.some(
-        (venueId) =>
-            !form.venueExtensionRates[venueId] ||
-            Number(form.venueExtensionRates[venueId]) <= 0,
-    );
-
-    if (hasInvalidVenueExtensionRate) {
-        missing.push('Venue Extension Rate');
-    }
-
     return missing;
 }
 
@@ -293,7 +283,7 @@ return;
                                 </label>
                                 <input
                                     type="number"
-                                    min={0}
+                                    min={1}
                                     value={form.price}
                                     onChange={(e) => updateField('price', e.target.value)}
                                     placeholder="25000"
@@ -428,7 +418,7 @@ return;
 
                                                 <input
                                                     type="number"
-                                                    min={0}
+                                                    min={1}
                                                     value={
                                                         form.venueExtensionRates[
                                                             venue.id
@@ -445,7 +435,7 @@ return;
                                                         )
                                                     }
                                                     placeholder="2500"
-                                                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-[#6B1E28] focus:outline-none"
+                                                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
                                                 />
                                             </div>
                                         )}
@@ -633,11 +623,11 @@ return;
                     </div>
                 </div>
 
-                {mode === 'add' && missingFields.length > 0 && (
-                    <p className="border-t border-neutral-100 px-5 py-2 text-xs text-red-500">
-                        Required: {missingFields.join(', ')}
-                    </p>
-                )}
+                {missingFields.length > 0 && (
+                <p className="border-t border-neutral-100 px-5 py-2 text-xs text-red-500">
+                    Required: {missingFields.join(', ')}
+                </p>
+            )}
 
                 <div className="flex items-center justify-between border-t border-neutral-100 p-5">
                     <button
