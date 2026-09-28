@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import { Coffee, Plus, ShoppingCart } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -6,110 +6,16 @@ import { CartDrawer } from '@/components/cart';
 import { cafe } from '@/routes';
 import type { MenuItem } from '@/types';
 
-const menuItems: MenuItem[] = [
-    {
-        id: 1,
-        name: 'Balay Signature Espresso',
-        category: 'Coffee',
-        description: 'Rich double shot with house-roasted beans.',
-        price: 95,
-        image: '/images/cafe/espresso.jpg',
-    },
-    {
-        id: 2,
-        name: 'Creamy Cappuccino',
-        category: 'Coffee',
-        description: 'Velvety microfoam with a bold espresso base.',
-        price: 120,
-        image: '/images/cafe/cappuccino.jpg',
-    },
-    {
-        id: 3,
-        name: 'Classic Café Latte',
-        category: 'Coffee',
-        description: 'Smooth steamed milk and espresso harmony.',
-        price: 130,
-        image: '/images/cafe/cafe-latte.webp',
-        available: false,
-    },
-    {
-        id: 4,
-        name: 'Cold Brew Delight',
-        category: 'Coffee',
-        description: '18-hour steeped cold brew, bold and smooth.',
-        price: 150,
-        image: '/images/cafe/cold-brew-delight.jpg',
-    },
-    {
-        id: 5,
-        name: 'Matcha Oat Latte',
-        category: 'Non-Coffee',
-        description: 'Ceremonial grade matcha with creamy oat milk.',
-        price: 145,
-        image: '/images/cafe/espresso.jpg',
-    },
-    {
-        id: 6,
-        name: 'Sparkling Lemonade',
-        category: 'Non-Coffee',
-        description: 'Fresh-squeezed lemons with a fizzy twist.',
-        price: 90,
-        image: '/images/cafe/cappuccino.jpg',
-    },
-    {
-        id: 7,
-        name: 'Butter Croissant',
-        category: 'Snacks',
-        description: 'Freshly baked, golden, and impossibly flaky.',
-        price: 80,
-        image: '/images/cafe/cafe-latte.webp',
-        available: false,
-    },
-    {
-        id: 8,
-        name: 'Club Sandwich',
-        category: 'Meals',
-        description: 'Stacked with chicken, bacon, egg, and greens.',
-        price: 220,
-        image: '/images/cafe/cold-brew-delight.jpg',
-    },
-    {
-        id: 9,
-        name: 'Pesto Pasta',
-        category: 'Meals',
-        description: 'Al dente pasta tossed in house-made basil pesto.',
-        price: 195,
-        image: '/images/cafe/espresso.jpg',
-    },
-    {
-        id: 10,
-        name: 'New York Cheesecake',
-        category: 'Desserts',
-        description: 'Dense, creamy, classic—with a graham cracker crust.',
-        price: 160,
-        image: '/images/cafe/cappuccino.jpg',
-    },
-    {
-        id: 11,
-        name: 'Chocolate Lava Cake',
-        category: 'Desserts',
-        description: 'Warm chocolate cake with a molten center.',
-        price: 175,
-        image: '/images/cafe/cafe-latte.webp',
-    },
-    {
-        id: 12,
-        name: 'Mixed Nuts & Chips',
-        category: 'Snacks',
-        description: 'Roasted mixed nuts and house-seasoned chips.',
-        price: 65,
-        image: '/images/cafe/cold-brew-delight.jpg',
-    },
-];
 
 const filters = ['All', 'Coffee', 'Non-Coffee', 'Snacks', 'Meals', 'Desserts'] as const;
 
-export default function CafeOrders() {
+interface CafeOrdersProps {
+    menuItems: MenuItem[];
+}
+
+export default function CafeOrders({
+    menuItems,
+} : CafeOrdersProps) {
     const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]>('All');
     const [cart, setCart] = useState<Record<number, number>>({});
     const [cartOpen, setCartOpen] = useState(false);
@@ -165,11 +71,56 @@ export default function CafeOrders() {
             return next;
         });
     }
+    function getPickupDateTime(option: string): string | null {
+        const now = new Date();
+
+        const minutes = {
+            'ASAP (~10 min)': 10,
+            'In 15 minutes': 15,
+            'In 30 minutes': 30,
+            'In 1 hour': 60,
+        }[option];
+
+        if (!minutes) {
+            return null;
+        }
+
+        now.setMinutes(now.getMinutes() + minutes);
+
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutesValue = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${hours}:${minutesValue}:${seconds}`;
+    }
 
     function handlePlaceOrder() {
-       
-        setCart({});
-        setCartOpen(false);
+        const items = Object.entries(cart).map(([menuItemId, quantity]) => ({
+            menu_item_id: Number(menuItemId),
+            quantity,
+        }));
+
+        if (items.length === 0) {
+            return;
+        }
+
+        router.post(
+            '/cafe/orders',
+            {
+                items,
+                pickup_time: getPickupDateTime(pickupTime),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setCart({});
+                    setCartOpen(false);
+                },
+            },
+        );
     }
 
     return (

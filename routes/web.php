@@ -7,6 +7,8 @@ use App\Http\Controllers\VenueController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\MenuItemController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\EventPackageController;
 
 Route::get('/', [VenueController::class, 'welcome'])->name('home');
 
@@ -42,8 +44,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('admin.reservations.status');
 
     Route::inertia('userCalendar', 'userCalendar')->name('scheduling');
-    Route::inertia('cafe-orders', 'UserCafe')->name('cafe');
-    Route::inertia('event-packages', 'event-packages')->name('packages');
+    Route::get('cafe-orders', [MenuItemController::class, 'customerIndex'])
+    ->name('cafe');
+    Route::post('cafe/orders', [OrderController::class, 'store'])
+    ->name('cafe.orders.store');
+    Route::patch('cafe/orders/{order}/status', [OrderController::class, 'updateStatus'])
+    ->name('cafe.orders.status');
+    Route::get(
+        'event-packages',
+        [EventPackageController::class, 'index']
+    )->name('packages');
     Route::get('payments', [ReservationController::class, 'payments'])
     ->name('payments');
     Route::post(
@@ -75,14 +85,38 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::patch('admin-cafe/{menuItem}/availability', [MenuItemController::class, 'toggleAvailability'])
     ->name('admin.cafe.availability');
-    Route::inertia('admin-packages', 'AdminPackages')->name('admin.packages');
+    Route::get(
+        'admin-packages',
+        [EventPackageController::class, 'adminIndex']
+    )->name('admin.packages');
+
+    Route::post(
+        'admin-packages',
+        [EventPackageController::class, 'store']
+    )->name('admin.packages.store');
+
+    Route::put(
+        'admin-packages/{eventPackage}',
+        [EventPackageController::class, 'update']
+    )->name('admin.packages.update');
+
+    Route::delete(
+        'admin-packages/{eventPackage}',
+        [EventPackageController::class, 'destroy']
+    )->name('admin.packages.destroy');
+
+    Route::patch(
+        'admin-packages/{eventPackage}/availability',
+        [EventPackageController::class, 'toggleAvailability']
+    )->name('admin.packages.availability');
     Route::inertia('admin-scheduling', 'AdminScheduling')->name('admin.scheduling');
     Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity-logs');
 
     //STAFF ROUTES HERE PLEASE
     Route::inertia('staff-dashboard', 'StaffDashboard')->name('staff.dashboard');
     Route::inertia('assigned-events', 'StaffAssigned-Events')->name('events');
-    Route::inertia('staff-cafe', 'StaffCafe')->name('staff.cafe');
+    Route::get('staff-cafe', [OrderController::class, 'staffIndex'])
+    ->name('staff.cafe');
 });
 
 require __DIR__ . '/settings.php';

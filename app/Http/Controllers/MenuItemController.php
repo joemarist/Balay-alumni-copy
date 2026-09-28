@@ -20,6 +20,16 @@ class MenuItemController extends Controller
             'menuItems' => $menuItems,
         ]);
     }
+    public function customerIndex()
+    {
+        $menuItems = MenuItem::where('available', true)
+            ->latest()
+            ->get();
+
+        return Inertia::render('UserCafe', [
+            'menuItems' => $menuItems,
+        ]);
+    }
 
     /**
      * Store a new menu item.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EventPackage;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Models\Venue;
@@ -225,6 +226,10 @@ public function updateStatus(
     {
         $validated = $request->validate([
             'venue_id' => ['required', 'exists:venues,id'],
+            'event_package_id' => [
+                'nullable',
+                'exists:event_packages,id',
+            ],
             'event_type' => ['required', 'string', 'max:255'],
             'guest_count' => ['required', 'integer', 'min:1'],
             'event_date' => ['required', 'date'],
@@ -232,6 +237,28 @@ public function updateStatus(
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
             'special_requests' => ['nullable', 'string'],
             'payment_method' => ['required', 'string', 'max:255'],
+
+            'selected_addons' => [
+                'nullable',
+                'array',
+            ],
+
+            'selected_addons.*.name' => [
+                'required',
+                'string',
+            ],
+
+            'selected_addons.*.price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'venue_extension_hours' => [
+                'nullable',
+                'integer',
+                'min:0',
+            ],
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -273,24 +300,159 @@ public function updateStatus(
                 ]);
             }
 
-            $venueRental = (float) $venue->rate;
-            $serviceFee = round($venueRental * 0.05, 2);
+            $package = null;
 
-            Reservation::create([
-                'user_id' => Auth::id(),
-                'venue_id' => $venue->id,
-                'event_type' => $validated['event_type'],
-                'guest_count' => $validated['guest_count'],
-                'event_date' => $validated['event_date'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'special_requests' => $validated['special_requests'] ?? null,
-                'payment_method' => $validated['payment_method'],
-                'venue_rental' => $venueRental,
-                'service_fee' => $serviceFee,
-                'total_amount' => $venueRental + $serviceFee,
-                'status' => 'pending',
-            ]);
+                if (! empty($validated['event_package_id'])) {
+                    $package = EventPackage::query()
+                        ->whereKey($validated['event_package_id'])
+                        ->where('available', true)
+                        ->with('venues')
+                        ->firstOrFail();
+                }
+
+                if ($package) {
+                    $packageVenue = $package->venues
+                        ->firstWhere('id', $venue->id);
+
+                    if (! $packageVenue) {
+                        throw ValidationException::withMessages([
+                            'venue_id' =>
+                                'The selected venue is not included in this event package.',
+                        ]);
+                    }
+                }
+
+                if ($package) {
+                    $start = \Carbon\Carbon::createFromFormat(
+                        'H:i',
+                        $validated['start_time']
+                    );
+
+                    $end = \Carbon\Carbon::createFromFormat(
+                        'H:i',
+                        $validated['end_time']
+                    );
+
+                    $durationHours = $start->diffInMinutes($end) / 60;
+
+                    $allowedHours =
+                        $package->included_duration_hours +
+                        (int) ($validated['venue_extension_hours'] ?? 0);
+
+                    if ($durationHours > $allowedHours) {
+                        throw ValidationException::withMessages([
+                            'end_time' =>
+                                'The selected time exceeds the package duration. ' .
+                                'This package includes ' .
+                                $package->included_duration_hours .
+                                ' hours, plus any approved venue extension.',
+                        ]);
+                    }
+                }
+
+            $packageAmount = $package
+                ? (float) $package->price
+                : 0;
+
+            $venueRental = $package
+                ? 0
+                : (float) $venue->rate;
+
+                $venueExtensionHours = (int) (
+                    $validated['venue_extension_hours'] ?? 0
+                );
+
+                $venueExtensionAmount = 0;
+
+                if ($package && $venueExtensionHours > 0) {
+                    $packageVenue = $package->venues
+                        ->firstWhere('id', $venue->id);
+
+                    $extensionRate = (float) (
+                        $packageVenue->pivot->extension_rate_per_hour ?? 0
+                    );
+
+                    if ($extensionRate <= 0) {
+                        throw ValidationException::withMessages([
+                            'venue_extension_hours' =>
+                                'Venue extension is not available for the selected venue and package.',
+                        ]);
+                    }
+
+                    $venueExtensionAmount =
+                        $extensionRate * $venueExtensionHours;
+                }
+
+                $addonAmount = 0;
+                $selectedAddons = [];
+
+                if ($package && ! empty($validated['selected_addons'])) {
+                    $availableAddons = collect($package->addons ?? []);
+
+                    foreach ($validated['selected_addons'] as $selectedAddon) {
+                        $matchingAddon = $availableAddons->firstWhere(
+                            'name',
+                            $selectedAddon['name']
+                        );
+
+                        if (! $matchingAddon) {
+                            throw ValidationException::withMessages([
+                                'selected_addons' =>
+                                    'One or more selected add-ons are not available for this package.',
+                            ]);
+                        }
+
+                        $addonPrice = (float) $matchingAddon['price'];
+
+                        $selectedAddons[] = [
+                            'name' => $matchingAddon['name'],
+                            'price' => $addonPrice,
+                        ];
+
+                        $addonAmount += $addonPrice;
+                    }
+                }
+
+                $subtotal =
+                $packageAmount +
+                $venueRental +
+                $venueExtensionAmount +
+                $addonAmount;
+
+                $serviceFee = round($subtotal * 0.05, 2);
+
+                $totalAmount = $subtotal + $serviceFee;
+
+                Reservation::create([
+                    'user_id' => Auth::id(),
+                    'venue_id' => $venue->id,
+                    'event_package_id' => $package?->id,
+
+                    'event_type' => $validated['event_type'],
+                    'guest_count' => $validated['guest_count'],
+                    'event_date' => $validated['event_date'],
+                    'start_time' => $validated['start_time'],
+                    'end_time' => $validated['end_time'],
+                    'special_requests' => $validated['special_requests'] ?? null,
+
+                    'payment_method' => $validated['payment_method'],
+
+                    'venue_rental' => $venueRental,
+                    'package_amount' => $packageAmount,
+                    'addon_amount' => $addonAmount,
+
+                    'venue_extension_hours' => $venueExtensionHours,
+                    'venue_extension_amount' => $venueExtensionAmount,
+
+                    'selected_addons' => $selectedAddons ?: null,
+
+                    'service_fee' => $serviceFee,
+                    'total_amount' => $totalAmount,
+
+                    'status' => 'pending',
+                    'payment_status' => 'unpaid',
+                ]);
+
         });
 
         return redirect()

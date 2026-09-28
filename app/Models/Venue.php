@@ -37,4 +37,11 @@ class Venue extends Model
     {
         return $this->hasMany(Reservation::class);
     }
+
+    public function eventPackages()
+    {
+        return $this->belongsToMany(EventPackage::class)
+            ->withPivot('extension_rate_per_hour')
+            ->withTimestamps();
+    }
 }

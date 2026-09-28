@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 
 // ─── INLINE ICONS ────────────────────────────────────────────────────────────
@@ -13,18 +14,56 @@ const IconAlert = ({ className = "w-5 h-5" }) => <svg xmlns="http://www.w3.org/2
 const IconX = ({ className = "w-5 h-5" }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
 
 // ─── TYPES ───────────────────────────────────────────────────────────────────
-type OrderStatus = 'Ordered' | 'Preparing' | 'Ready' | 'Completed';
-type Priority = 'NORMAL' | 'VIP' | 'RUSH' | 'ONLINE';
+type OrderStatus =
+    | 'pending'
+    | 'confirmed'
+    | 'preparing'
+    | 'ready'
+    | 'completed'
+    | 'rejected'
+    | 'cancelled';
 
-interface OrderItem { name: string; qty: number; price: number; }
+interface BackendOrderItem {
+    id: number;
+    quantity: number;
+    unit_price: string;
+    subtotal: string;
+    menu_item: {
+        id: number;
+        name: string;
+        price: string;
+    };
+}
+
+interface BackendOrder {
+    id: number;
+    status: OrderStatus;
+    payment_status: string;
+    payment_method: string | null;
+    pickup_time: string | null;
+    total_amount: string;
+    created_at: string;
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+    items: BackendOrderItem[];
+}
+
+interface OrderItem {
+    name: string;
+    qty: number;
+    price: number;
+}
+
 interface Order {
     id: string;
     customer: string;
     items: OrderItem[];
-    placedAt: number; // timestamp
+    placedAt: number;
     pickupTime: string;
     status: OrderStatus;
-    priority: Priority;
     total: number;
 }
 
@@ -33,12 +72,18 @@ const cn = (...classes: (string | boolean | undefined | null)[]) => classes.filt
 
 const formatTimer = (ms: number) => {
     if (ms < 0) {
-return "00:00";
-}
+        return "00:00";
+    }
 
     const totalSecs = Math.floor(ms / 1000);
-    const mins = Math.floor(totalSecs / 60);
+
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
     const secs = totalSecs % 60;
+
+    if (hours > 0) {
+        return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
 
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 };
@@ -72,87 +117,40 @@ return;
     }
 };
 
-// ─── MOCK DATA GENERATOR ─────────────────────────────────────────────────────
-const MENU_ITEMS = [
-    { name: 'Balay Signature Espresso', price: 95 },
-    { name: 'Creamy Cappuccino', price: 120 },
-    { name: 'Classic Café Latte', price: 130 },
-    { name: 'Cold Brew Delight', price: 150 },
-    { name: 'Matcha Oat Latte', price: 145 },
-    { name: 'Sparkling Lemonade', price: 90 },
-    { name: 'Butter Croissant', price: 80 },
-    { name: 'Club Sandwich', price: 220 },
-    { name: 'Pesto Pasta', price: 195 },
-    { name: 'New York Cheesecake', price: 160 },
-    { name: 'Chocolate Lava Cake', price: 175 },
-    { name: 'Mixed Nuts & Chips', price: 85 }
-];
 
-const generateMockOrders = (): Order[] => {
-    const now = Date.now();
-    const min = 60000;
-
-    return [
-        {
-            id: '1042', customer: 'Wong, Alice', pickupTime: 'In Store', status: 'Ordered', priority: 'NORMAL',
-            placedAt: now - 12 * min,
-            items: [{ name: 'Balay Signature Espresso', qty: 2, price: 95 }],
-            total: 190.0
-        },
-        {
-            id: '1043', customer: 'Chen, Robert', pickupTime: 'Online', status: 'Ordered', priority: 'ONLINE',
-            placedAt: now - 8 * min,
-            items: [{ name: 'Creamy Cappuccino', qty: 1, price: 120 }, { name: 'Butter Croissant', qty: 2, price: 80 }],
-            total: 280.0
-        },
-        {
-            id: '1044', customer: 'Jenkins, Sarah', pickupTime: 'In Store', status: 'Ordered', priority: 'VIP',
-            placedAt: now - 3 * min,
-            items: [{ name: 'Matcha Oat Latte', qty: 1, price: 145 }, { name: 'New York Cheesecake', qty: 1, price: 160 }],
-            total: 305.0
-        },
-        {
-            id: '1039', customer: 'Spotibai, Jose Rizal', pickupTime: 'In Store', status: 'Preparing', priority: 'NORMAL',
-            placedAt: now - 15 * min,
-            items: [
-                { name: 'Club Sandwich', qty: 1, price: 220 },
-                { name: 'Cold Brew Delight', qty: 1, price: 150 },
-                { name: 'Mixed Nuts & Chips', qty: 1, price: 85 }
-            ],
-            total: 455.0
-        },
-        {
-            id: '1040', customer: 'Gomez, Carlos', pickupTime: 'Delivery', status: 'Preparing', priority: 'RUSH',
-            placedAt: now - 11 * min,
-            items: [
-                { name: 'Pesto Pasta', qty: 2, price: 195 },
-                { name: 'Sparkling Lemonade', qty: 2, price: 90 },
-                { name: 'Chocolate Lava Cake', qty: 1, price: 175 }
-            ],
-            total: 745.0
-        },
-        {
-            id: '1035', customer: 'Santos, Maria', pickupTime: 'In Store', status: 'Ready', priority: 'NORMAL',
-            placedAt: now - 22 * min,
-            items: [{ name: 'Classic Café Latte', qty: 1, price: 130 }],
-            total: 130.0
-        },
-        {
-            id: '1036', customer: 'Reyes, Mark', pickupTime: 'In Store', status: 'Ready', priority: 'VIP',
-            placedAt: now - 19 * min,
-            items: [{ name: 'Cold Brew Delight', qty: 2, price: 150 }],
-            total: 300.0
-        },
-    ];
-};
+interface StaffCafeProps {
+    orders: BackendOrder[];
+}
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
-export default function StaffCafe() {
-    const [orders, setOrders] = useState<Order[]>(() => generateMockOrders());
+export default function StaffCafe({ 
+    orders: backendOrders
+}: StaffCafeProps) {
+    const orders = useMemo<Order[]>(() => {
+        return backendOrders.map((order) => ({
+            id: String(order.id),
+            customer: order.user.name,
+            items: order.items.map((item) => ({
+                name: item.menu_item.name,
+                qty: item.quantity,
+                price: Number(item.unit_price),
+            })),
+            placedAt: new Date(order.created_at).getTime(),
+            pickupTime: order.pickup_time
+                ? new Date(order.pickup_time).toLocaleString([], {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                })
+                : 'ASAP',
+            status: order.status,
+            total: Number(order.total_amount),
+        }));
+    }, [backendOrders]);
     const [now, setNow] = useState(() => Date.now());
     const [searchQuery, setSearchQuery] = useState("");
     const [isMuted, setIsMuted] = useState(false); // Default muted for browser autoplay policies
-    const [flashId, setFlashId] = useState<string | null>(null);
 
 
     // Global timer
@@ -162,60 +160,8 @@ export default function StaffCafe() {
         return () => clearInterval(interval);
     }, []);
 
-    const advanceOrderStatus = useCallback((id: string, currentStatus: OrderStatus) => {
-        setOrders(prev => prev.map(o => {
-            if (o.id !== id) {
-return o;
-}
+    
 
-            let nextStatus: OrderStatus = 'Ordered';
-
-            if (currentStatus === 'Ordered') {
-nextStatus = 'Preparing';
-}
-
-            if (currentStatus === 'Preparing') {
-nextStatus = 'Ready';
-}
-
-            if (currentStatus === 'Ready') {
-nextStatus = 'Completed';
-}
-
-            return { ...o, status: nextStatus };
-        }));
-    }, []);
-
-    const simulateNewOrder = () => {
-        const newId = String(Math.floor(1000 + Math.random() * 9000));
-        const numItems = Math.floor(Math.random() * 4) + 1; // 1 to 4 items
-        const randomItems = [];
-        let total = 0;
-
-        for (let i = 0; i < numItems; i++) {
-            const itemDef = MENU_ITEMS[Math.floor(Math.random() * MENU_ITEMS.length)];
-            const qty = Math.floor(Math.random() * 3) + 1;
-            randomItems.push({ name: itemDef.name, qty, price: itemDef.price });
-            total += itemDef.price * qty;
-        }
-
-        const newOrder: Order = {
-            id: newId,
-            customer: ['Doe, Jane', 'Smith, John', 'Gomez, Carlos', 'Bautista, David'][Math.floor(Math.random() * 4)],
-            items: randomItems,
-            placedAt: Date.now(),
-            pickupTime: 'In Store',
-            status: 'Ordered',
-            priority: Math.random() > 0.7 ? 'ONLINE' : 'NORMAL',
-            total
-        };
-
-        setOrders(prev => [newOrder, ...prev]);
-        playDing(isMuted);
-
-        setFlashId(newId);
-        setTimeout(() => setFlashId(null), 2000);
-    };
 
     return (
         <>
@@ -275,63 +221,63 @@ nextStatus = 'Completed';
                         >
                             {isMuted ? <IconVolumeX className="w-4 h-4" /> : <IconVolume2 className="w-4 h-4 text-[#7D1933] dark:text-rose-400" />}
                         </button>
-                        <button
+                        {/* <button
                             onClick={simulateNewOrder}
                             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-[#7D1933] hover:bg-[#5f1327] dark:bg-rose-700 dark:hover:bg-rose-600 text-white text-sm font-bold rounded-xl shadow-md transition-all active:scale-95 whitespace-nowrap"
                         >
                             <IconPlus className="w-4 h-4" /> New Order
-                        </button>
+                        </button> */}
                     </div>
                 </header>
 
                 {/* KANBAN BOARD */}
                 <main className="flex-1 overflow-hidden min-w-0 flex flex-col p-4 md:p-6 pb-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 flex-1 min-w-0 pb-6 overflow-y-auto lg:overflow-hidden">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 flex-1 min-w-0 pb-6 overflow-y-auto lg:overflow-hidden">
 
                         <KanbanColumn
-                            title="Ordered"
-                            status="Ordered"
+                            title="Pending"
+                            status="pending"
                             colorClass="bg-blue-500"
                             orders={orders}
                             now={now}
                             searchQuery={searchQuery}
-                            flashId={flashId}
-                            onAdvance={advanceOrderStatus}
+                        />
+
+                        <KanbanColumn
+                            title="Confirmed"
+                            status="confirmed"
+                            colorClass="bg-indigo-500"
+                            orders={orders}
+                            now={now}
+                            searchQuery={searchQuery}
                         />
 
                         <KanbanColumn
                             title="Preparing"
-                            status="Preparing"
+                            status="preparing"
                             colorClass="bg-amber-500"
                             orders={orders}
                             now={now}
                             searchQuery={searchQuery}
-                            flashId={flashId}
-                            onAdvance={advanceOrderStatus}
                         />
 
                         <KanbanColumn
                             title="Ready for Pickup"
-                            status="Ready"
+                            status="ready"
                             colorClass="bg-[#2E7D32]"
                             orders={orders}
                             now={now}
                             searchQuery={searchQuery}
-                            flashId={flashId}
-                            onAdvance={advanceOrderStatus}
                         />
 
                         <KanbanColumn
                             title="Completed"
-                            status="Completed"
+                            status="completed"
                             colorClass="bg-gray-400 dark:bg-slate-600"
                             orders={orders}
                             now={now}
                             searchQuery={searchQuery}
-                            flashId={flashId}
-                            onAdvance={advanceOrderStatus}
                         />
-
                     </div>
                 </main>
             </div>
@@ -360,11 +306,9 @@ interface ColumnProps {
     orders: Order[];
     now: number;
     searchQuery: string;
-    flashId: string | null;
-    onAdvance: (id: string, currentStatus: OrderStatus) => void;
 }
 
-function KanbanColumn({ title, status, colorClass, orders, now, searchQuery, flashId, onAdvance }: ColumnProps) {
+function KanbanColumn({ title, status, colorClass, orders, now, searchQuery }: ColumnProps) {
     // Filter by status, search query, and sort old -> new
     const filteredOrders = useMemo(() => {
         let currentOrders = orders.filter(o => o.status === status);
@@ -406,11 +350,8 @@ function KanbanColumn({ title, status, colorClass, orders, now, searchQuery, fla
                 ) : (
                     filteredOrders.map(order => (
                         <OrderCard
-                            key={order.id}
                             order={order}
                             now={now}
-                            isFlashing={flashId === order.id}
-                            onAdvance={() => onAdvance(order.id, status)}
                         />
                     ))
                 )}
@@ -423,28 +364,26 @@ function KanbanColumn({ title, status, colorClass, orders, now, searchQuery, fla
 interface CardProps {
     order: Order;
     now: number;
-    isFlashing: boolean;
-    onAdvance: () => void;
 }
 
-function OrderCard({ order, now, isFlashing, onAdvance }: CardProps) {
+function OrderCard({ order, now }: CardProps) {
     const elapsedMs = Math.max(0, now - order.placedAt);
     const elapsedMins = elapsedMs / 60000;
 
     // Evaluate Urgency (only for active orders, not completed)
     let urgencyLevel = 'neutral';
 
-    if (order.status !== 'Completed') {
+    if (order.status !== 'completed') {
         if (elapsedMins >= 10) {
-urgencyLevel = 'danger';
-} else if (elapsedMins >= 5) {
-urgencyLevel = 'warning';
-} else {
-urgencyLevel = 'good';
-}
+            urgencyLevel = 'danger';
+            } else if (elapsedMins >= 5) {
+            urgencyLevel = 'warning';
+            } else {
+            urgencyLevel = 'good';
+            }
     }
 
-    const isCompleted = order.status === 'Completed';
+    const isCompleted = order.status === 'completed';
 
     // Dynamic Classes based on urgency
     const cardBorderClasses = {
@@ -461,25 +400,56 @@ urgencyLevel = 'good';
         neutral: "text-[#7A4D58] bg-white dark:text-slate-400 dark:bg-slate-800"
     }[urgencyLevel];
 
-    const priorityColor = {
-        VIP: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800/50",
-        RUSH: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300 border-rose-200 dark:border-rose-800/50",
-        ONLINE: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800/50",
-        NORMAL: ""
-    }[order.priority];
-
+    
     const buttonLabel = {
-        Ordered: "Start Preparing",
-        Preparing: "Mark Ready",
-        Ready: "Complete Pickup",
-        Completed: ""
+        pending: "Confirm Order",
+        confirmed: "Start Preparing",
+        preparing: "Mark Ready",
+        ready: "Complete Pickup",
+        completed: "",
+        rejected: "",
+        cancelled: "",
     }[order.status];
+
+    const advanceOrderStatus = () => {
+        let nextStatus: OrderStatus | null = null;
+
+        switch (order.status) {
+            case 'pending':
+                nextStatus = 'confirmed';
+                break;
+
+            case 'confirmed':
+                nextStatus = 'preparing';
+                break;
+
+            case 'preparing':
+                nextStatus = 'ready';
+                break;
+
+            case 'ready':
+                nextStatus = 'completed';
+                break;
+
+            default:
+                return;
+        }
+
+        router.patch(
+            `/cafe/orders/${order.id}/status`,
+            {
+                status: nextStatus,
+            },
+            {
+                preserveScroll: true,
+            },
+        );
+    };
 
     return (
         <div className={cn(
             "p-3 rounded-xl border flex flex-col gap-3 transition-all duration-300 shadow-sm bg-white dark:bg-[#0F172A]",
             cardBorderClasses,
-            isFlashing && "flash-new"
         )}>
             {/* Header: ID, Timer, Priority */}
             <div className="flex items-start justify-between min-w-0 gap-2">
@@ -492,15 +462,15 @@ urgencyLevel = 'good';
                 </div>
 
                 <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                    <div className={cn("px-2 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-mono border border-transparent transition-colors", timerColorClasses)}>
+                    <div
+                        className={cn(
+                            "px-2 py-0.5 rounded-md flex items-center gap-1.5 text-xs font-mono border border-transparent transition-colors",
+                            timerColorClasses
+                        )}
+                    >
                         {!isCompleted && <IconClock className="w-3 h-3" />}
                         {isCompleted ? "Finished" : formatTimer(elapsedMs)}
                     </div>
-                    {order.priority !== 'NORMAL' && (
-                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider border", priorityColor)}>
-                            {order.priority}
-                        </span>
-                    )}
                 </div>
             </div>
 
@@ -528,7 +498,7 @@ urgencyLevel = 'good';
             {/* Action Button */}
             {!isCompleted ? (
                 <button
-                    onClick={onAdvance}
+                    onClick={advanceOrderStatus}
                     className="w-full mt-1 py-2.5 rounded-lg font-bold text-xs bg-white hover:bg-[#F2E5E8] text-[#7D1933] border border-[#F2E5E8] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors active:scale-[0.98]"
                 >
                     {buttonLabel}
