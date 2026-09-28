@@ -4,6 +4,20 @@ import { useState } from 'react';
 
 import type { Venue } from '@/types';
 
+type BookingPackageAddon = {
+    name: string;
+    price: number | string;
+};
+
+type BookingPackage = {
+    id: number;
+    name: string;
+    type: 'Basic' | 'Standard' | 'Premium';
+    price: number | string;
+    included_duration_hours: number;
+    addons: BookingPackageAddon[];
+};
+
 type BookingForm = {
     eventType: string;
     guestCount: string;
@@ -12,6 +26,8 @@ type BookingForm = {
     endTime: string;
     specialRequests: string;
     paymentMethod: string;
+    selectedAddonNames: string[];
+    extensionHours: string;
 };
 
 const eventTypes = [
@@ -95,9 +111,11 @@ function Stepper({ step }: { step: 1 | 2 | 3 }) {
 
 export function BookVenueModal({
     venue,
+    package: selectedPackage = null,
     onClose,
 }: {
     venue: Venue;
+    package?: BookingPackage | null;
     onClose: () => void;
 }) {
     const { errors } = usePage<{
@@ -113,11 +131,55 @@ export function BookVenueModal({
         endTime: '8:00 PM',
         specialRequests: '',
         paymentMethod: paymentMethods[0],
+        selectedAddonNames: [],
+        extensionHours: '0',
     });
 
-    const venueRental = parseRate(venue.rate);
-    const serviceFee = Math.round(venueRental * SERVICE_FEE_RATE);
-    const total = venueRental + serviceFee;
+    const packageAmount = selectedPackage
+    ? Number(selectedPackage.price)
+    : 0;
+
+const venueRental = selectedPackage
+    ? 0
+    : parseRate(String(venue.rate));
+
+const addonAmount = selectedPackage
+    ? selectedPackage.addons
+        .filter((addon) =>
+            form.selectedAddonNames.includes(addon.name),
+        )
+        .reduce(
+            (sum, addon) => sum + Number(addon.price),
+            0,
+        )
+    : 0;
+
+const extensionHours = selectedPackage
+    ? Number(form.extensionHours) || 0
+    : 0;
+
+const extensionRate = selectedPackage
+    ? Number(
+          // This should eventually come from the
+          // selected package + venue pivot.
+          0,
+      )
+    : 0;
+
+const extensionAmount =
+    extensionHours * extensionRate;
+
+const subtotal =
+    packageAmount +
+    venueRental +
+    addonAmount +
+    extensionAmount;
+
+const serviceFee =
+    Math.round(subtotal * SERVICE_FEE_RATE * 100) / 100;
+
+const total =
+    subtotal + serviceFee;
 
     function updateForm<K extends keyof BookingForm>(key: K, value: BookingForm[K]) {
         setForm((current) => ({ ...current, [key]: value }));
@@ -148,13 +210,38 @@ export function BookVenueModal({
             '/reservations',
             {
                 venue_id: venue.id,
+
+                event_package_id: selectedPackage?.id ?? null,
+
                 event_type: form.eventType,
+
                 guest_count: Number(form.guestCount),
+
                 event_date: form.eventDate,
+
                 start_time: convertTo24Hour(form.startTime),
+
                 end_time: convertTo24Hour(form.endTime),
+
                 special_requests: form.specialRequests || null,
+
                 payment_method: form.paymentMethod,
+
+                selected_addons: selectedPackage
+                    ? selectedPackage.addons
+                        .filter((addon) =>
+                            form.selectedAddonNames.includes(addon.name),
+                        )
+                        .map((addon) => ({
+                            name: addon.name,
+                            price: Number(addon.price),
+                        }))
+                    : [],
+
+                venue_extension_hours:
+                    selectedPackage
+                        ? Number(form.extensionHours) || 0
+                        : 0,
             },
             {
                 preserveScroll: true,

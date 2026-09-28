@@ -39,7 +39,11 @@ class ReservationController extends Controller
             403
         );
 
-        $reservations = Reservation::with(['venue', 'user'])
+        $reservations = Reservation::with([
+            'venue',
+            'user',
+            'eventPackage',
+        ])
             ->latest()
             ->get();
 
@@ -255,9 +259,10 @@ public function updateStatus(
             ],
 
             'venue_extension_hours' => [
-                'nullable',
-                'integer',
-                'min:0',
+            'nullable',
+            'integer',
+            'min:0',
+            'max:12',
             ],
         ]);
 
@@ -368,6 +373,13 @@ public function updateStatus(
                     $packageVenue = $package->venues
                         ->firstWhere('id', $venue->id);
 
+                    if (! $packageVenue) {
+                        throw ValidationException::withMessages([
+                            'venue_id' =>
+                                'The selected venue is not included in this package.',
+                        ]);
+                    }
+
                     $extensionRate = (float) (
                         $packageVenue->pivot->extension_rate_per_hour ?? 0
                     );
@@ -375,12 +387,9 @@ public function updateStatus(
                     if ($extensionRate <= 0) {
                         throw ValidationException::withMessages([
                             'venue_extension_hours' =>
-                                'Venue extension is not available for the selected venue and package.',
+                                'Venue extension is not available for this package.',
                         ]);
                     }
-
-                    $venueExtensionAmount =
-                        $extensionRate * $venueExtensionHours;
                 }
 
                 $addonAmount = 0;

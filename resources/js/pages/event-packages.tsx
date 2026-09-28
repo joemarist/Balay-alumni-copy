@@ -1,6 +1,7 @@
 import { Head } from '@inertiajs/react';
 import { Check } from 'lucide-react';
 import { useState } from 'react';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,93 +17,50 @@ import {
 } from '@/components/ui/dialog';
 import { packages } from '@/routes';
 
+type PackageAddon = {
+    name: string;
+    price: number | string;
+};
 
+type PackageVenue = {
+    id: number;
+    name: string;
+    minimum_capacity_pax: number;
+    maximum_capacity_pax: number;
+    pivot: {
+        extension_rate_per_hour: number | string;
+    };
+};
 
+type EventPackage = {
+    id: number;
+    type: 'Basic' | 'Standard' | 'Premium';
+    name: string;
+    price: number | string;
+    description: string | null;
+    included_duration_hours: number;
+    features: string[];
+    addons: PackageAddon[];
+    popular: boolean;
+    available: boolean;
+    venues: PackageVenue[];
+};
 
+type EventPackagesProps = {
+    packages: EventPackage[];
+};
 
-
-const packageData = [
-    {
-        type: 'Basic',
-        name: 'Halo Package',
-        price: '₱25,000',
-        description: [
-            'Venue rental (4 hrs)',
-            'Tables & chairs for 50 pax',
-            'Basic sound system',
-            '1 Event coordinator',
-            'Welcome signage',
-            'Basic floral centerpieces',
-        ],
-        addons: [
-            'Photo booth +₱3,000',
-            'Catering +₱8,000',
-            'Live music +₱5,000',
-        ],
-        cardClass: 'border-yellow-300 bg-[#fffbed]',
-        badgeClass:
-            'bg-yellow-100 text-yellow-700 hover:bg-yellow-100',
-        buttonClass:
-            'bg-transparent border-[#941b3b] text-[#941b3b] hover:bg-[#941b3b] hover:text-white',
-    },
-    {
-        type: 'Standard',
-        name: 'Dungan Package',
-        price: '₱55,000',
-        popular: true,
-        description: [
-            'Venue rental (8 hrs)',
-            'Tables & chairs for 150 pax',
-            'Full sound & lighting',
-            '2 Event coordinators',
-            'Custom backdrop & signage',
-            'Premium floral arrangements',
-            'Café orders for 50 pax',
-            'Dedicated parking slots',
-        ],
-        addons: [
-            'Drone coverage +₱6,000',
-            'Photo & video +₱12,000',
-            'Catering upgrade +₱15,000',
-        ],
-        cardClass: 'border-[#941b3b] bg-[#fffafa]',
-        badgeClass:
-            'bg-[#941b3b] text-white hover:bg-[#941b3b]',
-        buttonClass:
-            'bg-[#941b3b] text-white hover:bg-[#76152f]',
-    },
-    {
-        type: 'Premium',
-        name: 'Balay Package',
-        price: '₱95,000',
-        description: [
-            'Grand Ballroom (full day)',
-            'Tables & chairs for 300 pax',
-            'Premium AV & lighting system',
-            '3 Senior coordinators',
-            'Full décor & theming',
-            'Gourmet catering (300 pax)',
-            'Open café bar (4 hrs)',
-            'Photo & video coverage',
-            'Dedicated valet parking',
-            'Post-event cleanup',
-        ],
-        addons: [
-            'International DJ +₱20,000',
-            'Fireworks +₱15,000',
-            'Honeymoon suite +₱8,000',
-        ],
-        cardClass:
-            'border-green-200 bg-[#f1fff6]',
-        badgeClass:
-            'bg-green-700 text-white hover:bg-green-700',
-        buttonClass:
-            'bg-transparent border-[#941b3b] text-[#941b3b] hover:bg-[#941b3b] hover:text-white',
-    },
-];
-
-export default function EventPackages() {
+export default function EventPackages({
+    packages,
+}: EventPackagesProps) {
     const [open, setOpen] = useState(false);
+    const [selectedPackage, setSelectedPackage] =
+        useState<EventPackage | null>(null);
+
+    const handleChoosePackage = (pkg: EventPackage) => {
+        setSelectedPackage(pkg);
+        setOpen(true);
+    };
 
     return (
         <>
@@ -125,10 +83,10 @@ export default function EventPackages() {
                 {/* Package Cards */}
                 <div className="mx-auto grid max-w-[1550px] grid-cols-1 gap-7 lg:grid-cols-3">
 
-                    {packageData.map((pkg) => (
+                    {packages.map((pkg) => (
                         <Card
-                            key={pkg.name}
-                            className={`relative overflow-visible rounded-[18px] border-2 shadow-none ${pkg.cardClass}`}
+                            key={pkg.id}
+                            className="relative overflow-visible rounded-[18px] border-2 border-[#eadfe1] shadow-none"
                         >
 
                             {/* Most Popular Badge */}
@@ -143,9 +101,7 @@ export default function EventPackages() {
                             <CardContent className="flex h-full min-h-[600px] flex-col p-7">
 
                                 {/* Package Type */}
-                                <Badge
-                                    className={`mb-5 w-fit rounded-full px-3.5 py-1.5 text-xs font-bold ${pkg.badgeClass}`}
-                                >
+                                <Badge className="mb-5 w-fit rounded-full bg-[#f4e5e8] px-3.5 py-1.5 text-xs font-bold text-[#8f1735] hover:bg-[#f4e5e8]">
                                     {pkg.type}
                                 </Badge>
 
@@ -156,12 +112,19 @@ export default function EventPackages() {
 
                                 {/* Price */}
                                 <div className="mb-6 mt-1 font-serif text-3xl font-bold text-[#941b3b]">
-                                    {pkg.price}
+                                    ₱{Number(pkg.price).toLocaleString()}
                                 </div>
+
+                                {/* Description */}
+                                {pkg.description && (
+                                    <p className="mb-4 text-sm leading-6 text-[#744b55]">
+                                        {pkg.description}
+                                    </p>
+                                )}
 
                                 {/* Features */}
                                 <div className="space-y-2.5">
-                                    {pkg.description.map((feature) => (
+                                    {pkg.features.map((feature) => (
                                         <div
                                             key={feature}
                                             className="flex items-start gap-2.5 text-sm leading-6 text-[#191921]"
@@ -178,30 +141,69 @@ export default function EventPackages() {
                                     ))}
                                 </div>
 
-                                {/* Add-ons */}
-                                <div className="mt-6 border-t border-[#dedede] pt-4">
+                                {/* Included Duration */}
+                                <div className="mt-5 text-sm font-medium text-[#744b55]">
+                                    Includes {pkg.included_duration_hours} hours
+                                </div>
+
+                                {/* Available Venues */}
+                                <div className="mt-5 border-t border-[#dedede] pt-4">
                                     <h3 className="mb-2 text-xs font-bold tracking-[1px] text-[#89515c]">
-                                        AVAILABLE ADD-ONS
+                                        AVAILABLE VENUES
                                     </h3>
 
                                     <div className="space-y-1">
-                                        {pkg.addons.map((addon) => (
+                                        {pkg.venues.map((venue) => (
                                             <div
-                                                key={addon}
+                                                key={venue.id}
                                                 className="text-sm text-[#9b5965]"
                                             >
-                                                + {addon}
+                                                • {venue.name}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
+                                {/* Add-ons */}
+                                {pkg.addons.length > 0 && (
+                                    <div className="mt-6 border-t border-[#dedede] pt-4">
+                                        <h3 className="mb-2 text-xs font-bold tracking-[1px] text-[#89515c]">
+                                            AVAILABLE ADD-ONS
+                                        </h3>
+
+                                        <div className="space-y-1">
+                                            {pkg.addons.map((addon) => (
+                                                <div
+                                                    key={addon.name}
+                                                    className="flex justify-between gap-3 text-sm text-[#9b5965]"
+                                                >
+                                                    <span>
+                                                        + {addon.name}
+                                                    </span>
+
+                                                    <span className="font-medium">
+                                                        ₱
+                                                        {Number(
+                                                            addon.price,
+                                                        ).toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Choose Package */}
                                 <Button
-                                    className={`mt-6 h-11 w-full rounded-[16px] border text-sm font-semibold shadow-none ${pkg.buttonClass}`}
-                                    onClick={() => setOpen(true)}
+                                    disabled={!pkg.available}
+                                    className="mt-auto h-11 w-full rounded-[16px] border border-[#941b3b] bg-[#941b3b] text-sm font-semibold text-white shadow-none hover:bg-[#76152f] disabled:cursor-not-allowed disabled:opacity-50"
+                                    onClick={() =>
+                                        handleChoosePackage(pkg)
+                                    }
                                 >
-                                    Choose Package
+                                    {pkg.available
+                                        ? 'Choose Package'
+                                        : 'Unavailable'}
                                 </Button>
 
                             </CardContent>
@@ -211,28 +213,107 @@ export default function EventPackages() {
                 </div>
             </div>
 
-            {/* Test Modal */}
+            {/* Package Selection Modal */}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent className="sm:max-w-[500px]">
 
                     <DialogHeader>
                         <DialogTitle>
-                            Test Modal
+                            {selectedPackage?.name}
                         </DialogTitle>
 
                         <DialogDescription>
-                            This is a test modal for the selected event package.
+                            Review the selected event package before
+                            continuing.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={() => setOpen(false)}
-                            className="bg-[#941b3b] text-white hover:bg-[#76152f]"
-                        >
-                            Close
-                        </Button>
-                    </div>
+                    {selectedPackage && (
+                        <div className="space-y-4">
+
+                            {/* Package Price */}
+                            <div>
+                                <p className="text-sm text-[#744b55]">
+                                    Package Price
+                                </p>
+
+                                <p className="text-2xl font-bold text-[#941b3b]">
+                                    ₱
+                                    {Number(
+                                        selectedPackage.price,
+                                    ).toLocaleString()}
+                                </p>
+                            </div>
+
+                            {/* Duration */}
+                            <div>
+                                <p className="text-sm text-[#744b55]">
+                                    Included Duration
+                                </p>
+
+                                <p className="font-medium text-[#161622]">
+                                    {
+                                        selectedPackage.included_duration_hours
+                                    }{' '}
+                                    hours
+                                </p>
+                            </div>
+
+                            {/* Venues */}
+                            <div>
+                                <p className="mb-2 text-sm text-[#744b55]">
+                                    Available Venues
+                                </p>
+
+                                <div className="space-y-2">
+                                    {selectedPackage.venues.map(
+                                        (venue) => (
+                                            <div
+                                                key={venue.id}
+                                                className="rounded-lg border border-[#eadfe1] p-3"
+                                            >
+                                                <p className="font-medium text-[#161622]">
+                                                    {venue.name}
+                                                </p>
+
+                                                <p className="text-sm text-[#744b55]">
+                                                    Capacity:{' '}
+                                                    {
+                                                        venue.minimum_capacity_pax
+                                                    }
+                                                    -
+                                                    {
+                                                        venue.maximum_capacity_pax
+                                                    }{' '}
+                                                    pax
+                                                </p>
+
+                                                <p className="text-sm text-[#744b55]">
+                                                    Extension: ₱
+                                                    {Number(
+                                                        venue.pivot
+                                                            .extension_rate_per_hour,
+                                                    ).toLocaleString()}
+                                                    /hour
+                                                </p>
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Close */}
+                            <div className="flex justify-end">
+                                <Button
+                                    onClick={() => setOpen(false)}
+                                    className="bg-[#941b3b] text-white hover:bg-[#76152f]"
+                                >
+                                    Close
+                                </Button>
+                            </div>
+
+                        </div>
+                    )}
 
                 </DialogContent>
             </Dialog>
