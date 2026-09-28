@@ -9,6 +9,13 @@ type BookingPackageAddon = {
     price: number | string;
 };
 
+type BookingPackageVenue = {
+    id: number;
+    pivot: {
+        extension_rate_per_hour: number | string;
+    };
+};
+
 type BookingPackage = {
     id: number;
     name: string;
@@ -16,6 +23,7 @@ type BookingPackage = {
     price: number | string;
     included_duration_hours: number;
     addons: BookingPackageAddon[];
+    venues: BookingPackageVenue[];
 };
 
 type BookingForm = {
@@ -158,11 +166,12 @@ const extensionHours = selectedPackage
     ? Number(form.extensionHours) || 0
     : 0;
 
-const extensionRate = selectedPackage
+    const extensionRate = selectedPackage
     ? Number(
-          // This should eventually come from the
-          // selected package + venue pivot.
-          0,
+          selectedPackage.venues.find(
+              (packageVenue) =>
+                  packageVenue.id === venue.id,
+          )?.pivot.extension_rate_per_hour ?? 0,
       )
     : 0;
 
@@ -444,6 +453,37 @@ const total =
                                     className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:outline-none"
                                 />
                             </div>
+
+                            {selectedPackage && (
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                                    Additional Venue Hours
+                                </label>
+
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={12}
+                                    value={form.extensionHours}
+                                    onChange={(event) =>
+                                        updateForm(
+                                            'extensionHours',
+                                            event.target.value,
+                                        )
+                                    }
+                                    disabled={extensionRate <= 0}
+                                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:outline-none disabled:bg-neutral-100 disabled:text-neutral-400"
+                                />
+
+                                <p className="mt-1.5 text-xs text-neutral-500">
+                                    {extensionRate > 0
+                                        ? `Extension rate: ₱${extensionRate.toLocaleString(
+                                            'en-PH',
+                                        )} per hour.`
+                                        : 'Venue extension is not available for this package.'}
+                                </p>
+                            </div>
+                        )}
                         </div>
                     )}
 
@@ -482,8 +522,54 @@ const total =
                             </div>
 
                             <div className="rounded-lg border border-neutral-200 p-4">
+                            {selectedPackage && (
+                                <div className="flex justify-between text-sm text-neutral-600">
+                                    <span>{selectedPackage.name}</span>
+
+                                    <span>
+                                        ₱
+                                        {packageAmount.toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
+                                </div>
+                            )}
+
+                            {addonAmount > 0 && (
+                                <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
+                                    <span>Add-ons</span>
+
+                                    <span>
+                                        ₱
+                                        {addonAmount.toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
+                                </div>
+                            )}
+
+                            {extensionAmount > 0 && (
+                                <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
+                                    <span>
+                                        Venue Extension ({extensionHours} hrs)
+                                    </span>
+
+                                    <span>
+                                        ₱
+                                        {extensionAmount.toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </span>
+                                </div>
+                            )}
+
+                            {!selectedPackage && (
                                 <div className="flex justify-between text-sm text-neutral-600">
                                     <span>Venue Rental</span>
+
                                     <span>
                                         ₱
                                         {venueRental.toLocaleString('en-PH', {
@@ -492,27 +578,32 @@ const total =
                                         })}
                                     </span>
                                 </div>
-                                <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
-                                    <span>Service Fee (5%)</span>
-                                    <span>
-                                        ₱
-                                        {serviceFee.toLocaleString('en-PH', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </span>
-                                </div>
-                                <div className="mt-2 flex justify-between border-t border-neutral-200 pt-2 font-semibold text-[#3A1A1F]">
-                                    <span>Total</span>
-                                    <span>
-                                        ₱
-                                        {total.toLocaleString('en-PH', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </span>
-                                </div>
+                            )}
+
+                            <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
+                                <span>Service Fee (5%)</span>
+
+                                <span>
+                                    ₱
+                                    {serviceFee.toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </span>
                             </div>
+
+                            <div className="mt-2 flex justify-between border-t border-neutral-200 pt-2 font-semibold text-[#3A1A1F]">
+                                <span>Total</span>
+
+                                <span>
+                                    ₱
+                                    {total.toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </span>
+                            </div>
+                        </div>
 
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-neutral-700">

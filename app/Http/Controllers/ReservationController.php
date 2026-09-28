@@ -390,6 +390,9 @@ public function updateStatus(
                                 'Venue extension is not available for this package.',
                         ]);
                     }
+
+                    $venueExtensionAmount =
+                        $extensionRate * $venueExtensionHours;
                 }
 
                 $addonAmount = 0;
