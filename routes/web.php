@@ -8,7 +8,7 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\MenuItemController;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', [VenueController::class, 'welcome'])->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {

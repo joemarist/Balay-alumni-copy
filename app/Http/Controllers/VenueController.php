@@ -46,6 +46,23 @@ class VenueController extends Controller
         return $disk->url($image);
     }
 
+    public function welcome(): Response
+    {
+        $venues = Venue::query()
+            ->where('available', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function (Venue $venue) {
+                $venue->image = $this->imageUrl($venue->image);
+
+                return $venue;
+            });
+
+        return Inertia::render('welcome', [
+            'venues' => $venues,
+        ]);
+    }
+
     public function index(): Response
     {
         $venues = Venue::orderBy('name')
