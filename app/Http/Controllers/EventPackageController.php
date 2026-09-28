@@ -73,9 +73,9 @@ class EventPackageController extends Controller
         ],
 
         'price' => [
-            'required',
-            'numeric',
-            'min:0',
+        'required',
+        'numeric',
+        'min:1',
         ],
 
         'included_duration_hours' => [
@@ -129,7 +129,7 @@ class EventPackageController extends Controller
 
         'venue_extension_rates.*' => [
             'numeric',
-            'min:0',
+            'min:1',
         ],
 
         'popular' => [
@@ -193,9 +193,9 @@ public function update(
         ],
 
         'price' => [
-            'required',
-            'numeric',
-            'min:0',
+        'required',
+        'numeric',
+        'min:1',
         ],
 
         'included_duration_hours' => [
@@ -249,7 +249,7 @@ public function update(
 
         'venue_extension_rates.*' => [
             'numeric',
-            'min:0',
+            'min:1',
         ],
 
         'popular' => [

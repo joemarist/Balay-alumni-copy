@@ -132,6 +132,26 @@ function getMissingFields(
         missing.push('Included Venue');
     }
 
+    const hasInvalidAddon = form.addons.some(
+        (addon) =>
+            !addon.name.trim() ||
+            Number(addon.price) <= 0,
+    );
+
+    if (hasInvalidAddon) {
+        missing.push('Valid Add-on Name and Price');
+    }
+
+    const hasInvalidVenueExtensionRate = form.venueIds.some(
+        (venueId) =>
+            !form.venueExtensionRates[venueId] ||
+            Number(form.venueExtensionRates[venueId]) <= 0,
+    );
+
+    if (hasInvalidVenueExtensionRate) {
+        missing.push('Venue Extension Rate');
+    }
+
     return missing;
 }
 
@@ -501,39 +521,39 @@ return;
                                     className="flex items-center gap-2"
                                 >
                                     <input
-                                        type="text"
-                                        value={addon.name}
-                                        onChange={(e) => {
-                                            const addons = [...form.addons];
+                                    type="text"
+                                    value={addon.name}
+                                    onChange={(e) => {
+                                        const addons = [...form.addons];
 
-                                            addons[index] = {
-                                                ...addons[index],
-                                                name: e.target.value,
-                                            };
+                                        addons[index] = {
+                                            ...addons[index],
+                                            name: e.target.value,
+                                        };
 
-                                            updateField('addons', addons);
-                                        }}
-                                        placeholder="Photo booth"
-                                        className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-[#6B1E28] focus:outline-none"
-                                    />
+                                        updateField('addons', addons);
+                                    }}
+                                    placeholder="Photo booth"
+                                    className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                                />
 
-                                    <input
-                                        type="number"
-                                        min={0}
-                                        value={addon.price}
-                                        onChange={(e) => {
-                                            const addons = [...form.addons];
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={addon.price}
+                                    onChange={(e) => {
+                                        const addons = [...form.addons];
 
-                                            addons[index] = {
-                                                ...addons[index],
-                                                price: Number(e.target.value) || 0,
-                                            };
+                                        addons[index] = {
+                                            ...addons[index],
+                                            price: Number(e.target.value) || 0,
+                                        };
 
-                                            updateField('addons', addons);
-                                        }}
-                                        placeholder="3000"
-                                        className="w-28 rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-[#6B1E28] focus:outline-none"
-                                    />
+                                        updateField('addons', addons);
+                                    }}
+                                    placeholder="3000"
+                                    className="w-28 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                                />
 
                                     <button
                                         type="button"

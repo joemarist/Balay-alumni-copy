@@ -225,17 +225,16 @@ export default function AdminPackages() {
                                             {pkg.addons.map((addon) => (
                                                 <div
                                                     key={addon.name}
-                                                    className="text-sm text-[#9b5965]"
+                                                    className="flex items-center justify-between gap-3 text-sm text-[#9b5965]"
                                                 >
-                                                    + {addon.name} — ₱
-                                                    {Number(addon.price).toLocaleString()}
-                                                    <p className="mb-4 text-sm text-neutral-500">
-                                                        {pkg.included_duration_hours} hours of venue use included
-                                                    </p>
-                                                </div>
+                                                    <span>+ {addon.name}</span>
 
+                                                    <span className="font-medium">
+                                                        ₱{Number(addon.price).toLocaleString()}
+                                                    </span>
+                                                </div>
                                             ))}
-                                            </div>
+                                        </div>
                                         </div>
                                     )}
 
