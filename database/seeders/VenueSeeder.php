@@ -18,8 +18,14 @@ class VenueSeeder extends Seeder
             'minimum_capacity_pax' => 80,
             'maximum_capacity_pax' => 100,
 
+            // Automatic rental pricing:
+            // ₱15,000 covers the first 4 hours.
+            // Every additional hour costs ₱2,500.
             'rate' => 15000,
             'rate_duration' => '4 hours use',
+            'minimum_booking_hours' => 4,
+            'extension_rate_per_hour' => 2500,
+
             'inclusions' => [
                 'Tables & Chairs',
                 'Basic Sound System',
@@ -40,8 +46,14 @@ class VenueSeeder extends Seeder
             'minimum_capacity_pax' => 10,
             'maximum_capacity_pax' => 20,
 
+            // Automatic rental pricing:
+            // ₱3,000 covers the first 4 hours.
+            // Every additional hour costs ₱2,500.
             'rate' => 3000,
             'rate_duration' => '4 hours use',
+            'minimum_booking_hours' => 4,
+            'extension_rate_per_hour' => 2500,
+
             'inclusions' => [
                 'Long Table & Office Chairs',
                 'Basic Sound System',
@@ -62,8 +74,14 @@ class VenueSeeder extends Seeder
             'minimum_capacity_pax' => 150,
             'maximum_capacity_pax' => 200,
 
+            // Automatic rental pricing:
+            // ₱30,000 covers the first 4 hours.
+            // Every additional hour costs ₱2,500.
             'rate' => 30000,
             'rate_duration' => '4 hours use',
+            'minimum_booking_hours' => 4,
+            'extension_rate_per_hour' => 2500,
+
             'inclusions' => [
                 'Function Hall',
                 'Cafe Mini Hall',

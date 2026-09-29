@@ -505,7 +505,6 @@ public function updateStatus(
                 $subtotal =
                 $packageAmount +
                 $venueRental +
-                $venueExtensionAmount +
                 $addonAmount;
 
                 $serviceFee = round($subtotal * 0.05, 2);
