@@ -355,45 +355,122 @@ public function updateStatus(
                     }
                 }
 
-            $packageAmount = $package
+                $packageAmount = $package
                 ? (float) $package->price
                 : 0;
 
+            /*
+             * Calculate the actual reservation duration
+             * from the customer's selected start and end time.
+             */
+            $start = \Carbon\Carbon::createFromFormat(
+                'H:i',
+                $validated['start_time']
+            );
+
+            $end = \Carbon\Carbon::createFromFormat(
+                'H:i',
+                $validated['end_time']
+            );
+
+            $durationHours = $start->diffInMinutes($end) / 60;
+
+            /*
+             * Normal venue booking:
+             *
+             * The venue's minimum booking hours represent
+             * the number of hours already included in the base rate.
+             *
+             * Example:
+             * Base rate = ₱15,000
+             * Minimum booking = 4 hours
+             * Extension rate = ₱2,500/hour
+             *
+             * 4 hours = ₱15,000
+             * 5 hours = ₱17,500
+             * 6 hours = ₱20,000
+             */
+            $minimumBookingHours = (int) $venue->minimum_booking_hours;
+
+            if (! $package && $durationHours < $minimumBookingHours) {
+                throw ValidationException::withMessages([
+                    'end_time' =>
+                        'This venue requires a minimum reservation duration of ' .
+                        $minimumBookingHours .
+                        ' hours.',
+                ]);
+            }
+
+            /*
+             * For normal venue reservations, the system automatically
+             * determines the extension hours.
+             *
+             * Customers do NOT enter these hours themselves.
+             */
+            $automaticVenueExtensionHours = ! $package
+                ? max(0, $durationHours - $minimumBookingHours)
+                : 0;
+
+            $automaticVenueExtensionRate = ! $package
+                ? (float) $venue->extension_rate_per_hour
+                : 0;
+
+            $automaticVenueExtensionAmount =
+                $automaticVenueExtensionHours *
+                $automaticVenueExtensionRate;
+
+            /*
+             * Normal venue rental:
+             *
+             * Base rate + automatically calculated extension.
+             *
+             * Event packages continue using the package pricing
+             * logic below.
+             */
             $venueRental = $package
                 ? 0
-                : (float) $venue->rate;
+                : (float) $venue->rate +
+                  $automaticVenueExtensionAmount;
 
-                $venueExtensionHours = (int) (
-                    $validated['venue_extension_hours'] ?? 0
+            /*
+             * Existing event-package extension logic.
+             *
+             * This is intentionally kept separate from the
+             * automatic normal-venue extension calculation.
+             */
+            $venueExtensionHours = $package
+                ? (int) ($validated['venue_extension_hours'] ?? 0)
+                : (int) $automaticVenueExtensionHours;
+
+            $venueExtensionAmount = $package
+                ? 0
+                : $automaticVenueExtensionAmount;
+
+            if ($package && $venueExtensionHours > 0) {
+                $packageVenue = $package->venues
+                    ->firstWhere('id', $venue->id);
+
+                if (! $packageVenue) {
+                    throw ValidationException::withMessages([
+                        'venue_id' =>
+                            'The selected venue is not included in this package.',
+                    ]);
+                }
+
+                $extensionRate = (float) (
+                    $packageVenue->pivot->extension_rate_per_hour ?? 0
                 );
 
-                $venueExtensionAmount = 0;
-
-                if ($package && $venueExtensionHours > 0) {
-                    $packageVenue = $package->venues
-                        ->firstWhere('id', $venue->id);
-
-                    if (! $packageVenue) {
-                        throw ValidationException::withMessages([
-                            'venue_id' =>
-                                'The selected venue is not included in this package.',
-                        ]);
-                    }
-
-                    $extensionRate = (float) (
-                        $packageVenue->pivot->extension_rate_per_hour ?? 0
-                    );
-
-                    if ($extensionRate <= 0) {
-                        throw ValidationException::withMessages([
-                            'venue_extension_hours' =>
-                                'Venue extension is not available for this package.',
-                        ]);
-                    }
-
-                    $venueExtensionAmount =
-                        $extensionRate * $venueExtensionHours;
+                if ($extensionRate <= 0) {
+                    throw ValidationException::withMessages([
+                        'venue_extension_hours' =>
+                            'Venue extension is not available for this package.',
+                    ]);
                 }
+
+                $venueExtensionAmount =
+                    $extensionRate * $venueExtensionHours;
+            }
 
                 $addonAmount = 0;
                 $selectedAddons = [];

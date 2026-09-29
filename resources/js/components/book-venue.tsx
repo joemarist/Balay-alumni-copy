@@ -89,6 +89,10 @@ function calculateDurationInHours(
     const startMinutes = startHour * 60 + startMinute;
     const endMinutes = endHour * 60 + endMinute;
 
+    if (endMinutes <= startMinutes) {
+        return 0;
+    }
+
     return (endMinutes - startMinutes) / 60;
 }
 
@@ -163,9 +167,55 @@ export function BookVenueModal({
     ? Number(selectedPackage.price)
     : 0;
 
+/*
+ * NORMAL VENUE AUTOMATIC PRICING
+ *
+ * The customer only selects Start Time and End Time.
+ * The system automatically calculates the duration
+ * and determines whether additional hours are needed.
+ */
+const durationHours = calculateDurationInHours(
+    form.startTime,
+    form.endTime,
+);
+
+const minimumBookingHours = Number(
+    venue.minimum_booking_hours,
+);
+
+const automaticVenueExtensionHours =
+    !selectedPackage
+        ? Math.max(
+              0,
+              durationHours - minimumBookingHours,
+          )
+        : 0;
+
+const automaticVenueExtensionRate =
+    !selectedPackage
+        ? Number(venue.extension_rate_per_hour ?? 0)
+        : 0;
+
+const automaticVenueExtensionAmount =
+    automaticVenueExtensionHours *
+    automaticVenueExtensionRate;
+
+const hasMinimumDurationError =
+    !selectedPackage &&
+    durationHours < minimumBookingHours;
+
+/*
+ * Normal venue:
+ * Base rate + automatic extension.
+ *
+ * Event package:
+ * Venue rental remains 0 because the package
+ * already contains the venue pricing.
+ */
 const venueRental = selectedPackage
     ? 0
-    : parseRate(String(venue.rate));
+    : parseRate(String(venue.rate)) +
+      automaticVenueExtensionAmount;
 
 const addonAmount = selectedPackage
     ? selectedPackage.addons
@@ -178,11 +228,17 @@ const addonAmount = selectedPackage
         )
     : 0;
 
+/*
+ * Event package extension system.
+ *
+ * This remains manually controlled because it is
+ * separate from normal venue automatic pricing.
+ */
 const extensionHours = selectedPackage
     ? Number(form.extensionHours) || 0
     : 0;
 
-    const extensionRate = selectedPackage
+const extensionRate = selectedPackage
     ? Number(
           selectedPackage.venues.find(
               (packageVenue) =>
@@ -213,6 +269,14 @@ const total =
     function handleConfirm() {
         if (!form.eventDate) {
             alert('Please select an event date.');
+            setStep(2);
+            return;
+        }
+
+        if (hasMinimumDurationError) {
+            alert(
+                `This venue requires a minimum reservation duration of ${minimumBookingHours} hours.`,
+            );
             setStep(2);
             return;
         }
@@ -341,7 +405,9 @@ const total =
                                     {venue.minimum_capacity_pax}-{venue.maximum_capacity_pax} pax</p>
                                 </div>
                                 <div className="rounded-lg bg-white p-3">
-                                <p className="text-xs text-neutral-500">Rate ({venue.rate_duration})</p>
+                                <p className="text-xs text-neutral-500">
+                                    Base Rate ({venue.minimum_booking_hours} hrs)
+                                </p>
                                 <p className="font-semibold text-[#3A1A1F]">
                                     ₱{Number(venue.rate).toLocaleString('en-PH', {
                                         minimumFractionDigits: 2,
@@ -456,6 +522,38 @@ const total =
                                     </select>
                                 </div>
                             </div>
+
+                            {!selectedPackage && (
+                            <div className="rounded-lg bg-[#FDF6F3] p-3">
+                                <p className="text-xs font-medium text-[#6B1E28]">
+                                    Minimum Booking Duration
+                                </p>
+
+                                <p className="mt-1 text-sm text-neutral-700">
+                                    This venue requires at least{' '}
+                                    <strong>
+                                        {minimumBookingHours} hour
+                                        {minimumBookingHours === 1 ? '' : 's'}
+                                    </strong>{' '}
+                                    of reservation time.
+                                </p>
+
+                                {durationHours > 0 && (
+                                    <p className="mt-1 text-xs text-neutral-500">
+                                        Selected duration: {durationHours} hour
+                                        {durationHours === 1 ? '' : 's'}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {hasMinimumDurationError && (
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                                This venue requires a minimum reservation of{' '}
+                                <strong>{minimumBookingHours} hours</strong>.
+                                Please choose a later end time.
+                            </div>
+                        )}
 
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-neutral-700">
@@ -583,17 +681,64 @@ const total =
                             )}
 
                             {!selectedPackage && (
-                                <div className="flex justify-between text-sm text-neutral-600">
-                                    <span>Venue Rental</span>
+                                <>
+                                    <div className="flex justify-between text-sm text-neutral-600">
+                                        <span>
+                                            Base Venue Rate ({minimumBookingHours} hrs)
+                                        </span>
 
-                                    <span>
-                                        ₱
-                                        {venueRental.toLocaleString('en-PH', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </span>
-                                </div>
+                                        <span>
+                                            ₱
+                                            {parseRate(String(venue.rate)).toLocaleString(
+                                                'en-PH',
+                                                {
+                                                    minimumFractionDigits: 2,
+                                                    maximumFractionDigits: 2,
+                                                },
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    {automaticVenueExtensionHours > 0 && (
+                                        <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
+                                            <span>
+                                                Extension (
+                                                {automaticVenueExtensionHours} hrs × ₱
+                                                {automaticVenueExtensionRate.toLocaleString(
+                                                    'en-PH',
+                                                    {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2,
+                                                    },
+                                                )}
+                                                )
+                                            </span>
+
+                                            <span>
+                                                ₱
+                                                {automaticVenueExtensionAmount.toLocaleString(
+                                                    'en-PH',
+                                                    {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2,
+                                                    },
+                                                )}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="mt-1.5 flex justify-between font-medium text-[#3A1A1F]">
+                                        <span>Venue Rental</span>
+
+                                        <span>
+                                            ₱
+                                            {venueRental.toLocaleString('en-PH', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </span>
+                                    </div>
+                                </>
                             )}
 
                             <div className="mt-1.5 flex justify-between text-sm text-neutral-600">
@@ -653,16 +798,32 @@ const total =
                         {step === 1 ? 'Cancel' : 'Back'}
                     </button>
                     <button
-                        type="button"
-                        onClick={
-                            step === 3
-                                ? handleConfirm
-                                : () => setStep((current) => (current + 1) as 2 | 3)
-                        }
-                        className="rounded-full bg-[#6B1E28] px-6 py-2 text-sm font-medium text-white hover:bg-[#5A1821]"
-                    >
-                        {step === 3 ? 'Confirm Booking' : 'Continue'}
-                    </button>
+                    type="button"
+                    onClick={
+                        step === 3
+                            ? handleConfirm
+                            : () => {
+                                if (
+                                    step === 2 &&
+                                    hasMinimumDurationError
+                                ) {
+                                    return;
+                                }
+
+                                setStep(
+                                    (current) =>
+                                        (current + 1) as 2 | 3,
+                                );
+                            }
+                    }
+                    disabled={
+                        step === 2 &&
+                        hasMinimumDurationError
+                    }
+                    className="rounded-full bg-[#6B1E28] px-6 py-2 text-sm font-medium text-white hover:bg-[#5A1821] disabled:cursor-not-allowed disabled:bg-neutral-300"
+                >
+                    {step === 3 ? 'Confirm Booking' : 'Continue'}
+                </button>
                 </div>
             </div>
         </div>
