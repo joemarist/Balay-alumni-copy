@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EventPackage;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Http\RedirectResponse;
@@ -47,21 +48,29 @@ class VenueController extends Controller
     }
 
     public function welcome(): Response
-    {
-        $venues = Venue::query()
-            ->where('available', true)
-            ->orderBy('name')
-            ->get()
-            ->map(function (Venue $venue) {
-                $venue->image = $this->imageUrl($venue->image);
+{
+    $venues = Venue::query()
+        ->where('available', true)
+        ->orderBy('name')
+        ->get()
+        ->map(function (Venue $venue) {
+            $venue->image = $this->imageUrl($venue->image);
 
-                return $venue;
-            });
+            return $venue;
+        });
 
-        return Inertia::render('welcome', [
-            'venues' => $venues,
-        ]);
-    }
+    $packages = EventPackage::query()
+        ->where('available', true)
+        ->with('venues')
+        ->orderByDesc('popular')
+        ->orderBy('price')
+        ->get();
+
+    return Inertia::render('welcome', [
+        'venues' => $venues,
+        'packages' => $packages,
+    ]);
+}
 
     public function index(): Response
     {

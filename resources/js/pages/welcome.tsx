@@ -18,6 +18,35 @@ type WelcomeVenue = {
     available: boolean;
 };
 
+type WelcomePackageVenue = {
+    id: number;
+    name: string;
+    minimum_capacity_pax: number;
+    maximum_capacity_pax: number;
+    pivot: {
+        extension_rate_per_hour: number | string;
+    };
+};
+
+type WelcomePackageAddon = {
+    name: string;
+    price: number | string;
+};
+
+type WelcomePackage = {
+    id: number;
+    name: string;
+    type: 'Basic' | 'Standard' | 'Premium';
+    description: string | null;
+    price: number | string;
+    included_duration_hours: number;
+    features: string[];
+    addons: WelcomePackageAddon[];
+    popular: boolean;
+    available: boolean;
+    venues: WelcomePackageVenue[];
+};
+
 type Props = {
     auth: {
         user?: {
@@ -25,15 +54,14 @@ type Props = {
         } | null;
     };
     venues: WelcomeVenue[];
+    packages: WelcomePackage[];
 };
+
 const nav = [['Venues', 'venues'], ['Packages', 'packages'], ['Café', 'cafe'], ['Our story', 'story'], ['Contact', 'contact']];
 const go = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-type Package = [string, string, string, string, string[]];
-const packages: Package[] = [
-    ['Halo', 'Essential', '₱25,000', 'A thoughtful foundation for intimate gatherings.', ['Venue rental for 4 hours', 'Tables and chairs for 50 guests', 'Basic sound system', 'Event coordinator']],
-    ['Dungan', 'Most loved', '₱55,000', 'Everything you need to bring a meaningful event to life.', ['Venue rental for 8 hours', 'Tables and chairs for 150 guests', 'Full sound and lighting', 'Premium floral arrangements', 'Café orders for 50 guests']],
-    ['Balay', 'Signature', '₱95,000', 'A complete, elevated experience for your biggest moments.', ['Full-day venue access', 'Premium AV and lighting', 'Full décor and theming', 'Gourmet catering for 300 guests', 'Photo and video coverage']],
-];
+
+
+
 const menu = [
     ['Signature Espresso', 'Rich double shot, house-roasted beans.', '₱95', 'https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=600&h=450&fit=crop&auto=format'],
     ['Creamy Cappuccino', 'Velvety microfoam with a bold base.', '₱120', 'https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&h=450&fit=crop&auto=format'],
@@ -42,12 +70,22 @@ const menu = [
 ];
 
 export default function Welcome() {
-    const { auth, venues } = usePage<Props>().props;
+    const { auth, venues, packages } = usePage<Props>().props;
 
     const [open, setOpen] = useState(false);
     const [selectedVenue, setSelectedVenue] =
         useState<WelcomeVenue | null>(null);
+    const [selectedPackage, setSelectedPackage] =
+        useState<WelcomePackage | null>(null);
     const cta = auth.user ? dashboard() : register();
+    const handleChoosePackage = () => {
+        if (auth.user) {
+            window.location.href = '/event-packages';
+            return;
+        }
+
+        window.location.href = '/event-packages/login';
+    };
     const close = () => setOpen(false);
 
     return <>
@@ -131,7 +169,129 @@ export default function Welcome() {
             </div>
 
                 </div></section>
-                <section id="packages" className="scroll-mt-20 bg-[#f5ebe8] py-24"><div className="mx-auto max-w-7xl px-5 sm:px-8"><div className="mx-auto mb-12 max-w-xl text-center"><p className="mb-3 text-xs font-bold uppercase tracking-[.2em] text-[#9b4053]">Plan with ease</p><h2 className="font-serif text-4xl text-[#32191e] sm:text-5xl">Thoughtfully prepared<br /><em className="font-normal">for every occasion.</em></h2></div><div className="grid gap-6 md:grid-cols-3">{packages.map(([name, eyebrow, price, description, features], index) => <article key={name} className={`relative flex flex-col rounded-2xl border p-7 ${index === 1 ? 'border-[#7d1933] bg-[#7d1933] text-white shadow-2xl md:-translate-y-3' : 'border-[#e0cdca] bg-white/65'}`}>{index === 1 && <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#e6a9af] px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-[#5e1227]">Most loved</span>}<p className={`text-xs font-bold uppercase tracking-[.2em] ${index === 1 ? 'text-[#f7d8d8]' : 'text-[#9b4053]'}`}>{eyebrow}</p><h3 className="mt-3 font-serif text-3xl">{name}</h3><p className={`mt-3 text-sm leading-6 ${index === 1 ? 'text-white/75' : 'text-[#765f63]'}`}>{description}</p><p className={`mt-7 font-serif text-3xl ${index === 1 ? 'text-white' : 'text-[#7d1933]'}`}>{price}<small className="ml-1 font-sans text-xs opacity-60">starting</small></p><ul className="mt-7 space-y-3 border-t border-current/15 pt-6 text-sm">{features.map(feature => <li key={feature} className="flex items-start gap-2"><Check size={16} className="mt-0.5 shrink-0 text-[#4b9568]" />{feature}</li>)}</ul><Link href={cta} className={`mt-8 rounded-xl px-4 py-3 text-center text-sm font-bold ${index === 1 ? 'bg-white text-[#7d1933]' : 'border border-[#bd969c] text-[#7d1933]'}`}>Choose {name}</Link></article>)}</div></div></section>
+
+                <section
+                id="packages"
+                className="scroll-mt-20 bg-[#f5ebe8] py-24"
+            >
+                <div className="mx-auto max-w-7xl px-5 sm:px-8">
+                    <div className="mx-auto mb-12 max-w-xl text-center">
+                        <p className="mb-3 text-xs font-bold uppercase tracking-[.2em] text-[#9b4053]">
+                            Plan with ease
+                        </p>
+
+                        <h2 className="font-serif text-4xl text-[#32191e] sm:text-5xl">
+                            Thoughtfully prepared
+                            <br />
+                            <em className="font-normal">
+                                for every occasion.
+                            </em>
+                        </h2>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-3">
+                        {packages.map((pkg) => (
+                            <article
+                                key={pkg.id}
+                                onClick={() => setSelectedPackage(pkg)}
+                                className={`group relative flex cursor-pointer flex-col rounded-2xl border p-7 transition duration-300 hover:-translate-y-2 hover:shadow-2xl ${
+                                    pkg.type === 'Standard'
+                                        ? 'border-[#7d1933] bg-[#7d1933] text-white shadow-xl'
+                                        : pkg.type === 'Premium'
+                                        ? 'border-[#c9ded0] bg-[#f1fff6]'
+                                        : 'border-[#e0cdca] bg-white/80'
+                                }`}
+                            >
+                                {pkg.popular && (
+                                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#e6a9af] px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-[#5e1227]">
+                                        Most loved
+                                    </span>
+                                )}
+
+                                <p
+                                    className={`text-xs font-bold uppercase tracking-[.2em] ${
+                                        pkg.type === 'Standard'
+                                            ? 'text-[#f7d8d8]'
+                                            : 'text-[#9b4053]'
+                                    }`}
+                                >
+                                    {pkg.type}
+                                </p>
+
+                                <h3 className="mt-3 font-serif text-3xl">
+                                    {pkg.name}
+                                </h3>
+
+                                <p
+                                    className={`mt-3 min-h-[72px] text-sm leading-6 ${
+                                        pkg.type === 'Standard'
+                                            ? 'text-white/75'
+                                            : 'text-[#765f63]'
+                                    }`}
+                                >
+                                    {pkg.description}
+                                </p>
+
+                                <p
+                                    className={`mt-7 font-serif text-3xl ${
+                                        pkg.type === 'Standard'
+                                            ? 'text-white'
+                                            : 'text-[#7d1933]'
+                                    }`}
+                                >
+                                    ₱
+                                    {Number(pkg.price).toLocaleString()}
+                                    <small className="ml-1 font-sans text-xs opacity-60">
+                                        starting
+                                    </small>
+                                </p>
+
+                                <ul className="mt-7 space-y-3 border-t border-current/15 pt-6 text-sm">
+                                    {pkg.features.slice(0, 5).map((feature) => (
+                                        <li
+                                            key={feature}
+                                            className="flex items-start gap-2"
+                                        >
+                                            <Check
+                                                size={16}
+                                                className="mt-0.5 shrink-0 text-[#4b9568]"
+                                            />
+
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleChoosePackage();
+                                    }}
+                                    className={`mt-8 rounded-xl px-4 py-3 text-center text-sm font-bold ${
+                                        pkg.type === 'Standard'
+                                            ? 'bg-white text-[#7d1933]'
+                                            : 'border border-[#bd969c] text-[#7d1933]'
+                                    }`}
+                                >
+                                    Choose {pkg.name}
+                                </button>
+
+                                <p
+                                    className={`mt-3 text-center text-xs ${
+                                        pkg.type === 'Standard'
+                                            ? 'text-white/60'
+                                            : 'text-[#8c6e73]'
+                                    }`}
+                                >
+                                    Click the card to view full details
+                                </p>
+                            </article>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
                 <section id="cafe" className="scroll-mt-20 bg-white py-24"><div className="mx-auto max-w-7xl px-5 sm:px-8"><div className="mb-12"><p className="mb-3 text-xs font-bold uppercase tracking-[.2em] text-[#3d8657]">Pause, sip, stay awhile</p><h2 className="font-serif text-4xl text-[#32191e] sm:text-5xl">Good coffee makes<br /><em className="font-normal">good company better.</em></h2></div><div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">{menu.map(([name, description, price, image]) => <article key={name} className="overflow-hidden rounded-2xl border border-[#eadfd9] bg-[#fcf8f5]"><img src={image} alt={name} loading="lazy" className="h-44 w-full object-cover" /><div className="p-5"><h3 className="font-serif text-xl text-[#32191e]">{name}</h3><p className="mt-2 min-h-10 text-xs leading-5 text-[#765f63]">{description}</p><div className="mt-4 flex justify-between"><span className="font-bold text-[#7d1933]">{price}</span><Coffee size={16} className="text-[#3d8657]" /></div></div></article>)}</div></div></section>
                 <section id="story" className="scroll-mt-20 bg-[#32191e] px-5 py-24 text-center text-white sm:px-8"><div className="mx-auto max-w-2xl"><p className="mb-4 text-xs font-bold uppercase tracking-[.2em] text-[#e6a9af]">More than a venue</p><h2 className="font-serif text-4xl sm:text-5xl">A place to come back to.</h2><p className="mt-6 text-base leading-8 text-white/65">Balay means home. We built this space so the alumni community always has somewhere to gather, celebrate, and create new stories together.</p><Link href={cta} className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-4 text-sm font-bold text-[#7d1933]">Start planning <ArrowRight size={16} /></Link></div></section>
                 <section id="contact" className="scroll-mt-20 bg-[#f5ebe8] px-5 py-20 text-center sm:px-8"><h2 className="font-serif text-4xl text-[#32191e] sm:text-5xl">Let’s make it <em className="font-normal text-[#9b4053]">worth remembering.</em></h2><p className="mx-auto mt-5 max-w-md text-sm leading-7 text-[#765f63]">events@balayalumni.ph · +63 82 123 4567</p><Link href={cta} className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#7d1933] px-7 py-4 text-sm font-bold text-white">Start planning your event <ArrowRight size={16} /></Link></section>
@@ -263,5 +423,194 @@ export default function Welcome() {
             </div>
         )}
         </div>
+
+        {selectedPackage && (
+            <div
+                className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                onClick={() => setSelectedPackage(null)}
+            >
+                <div
+                    className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl"
+                    onClick={(event) => event.stopPropagation()}
+                >
+                    <div className="relative bg-[#7d1933] px-6 py-8 text-white sm:px-8">
+                        <button
+                            type="button"
+                            onClick={() => setSelectedPackage(null)}
+                            className="absolute right-4 top-4 rounded-full bg-white/15 p-2 transition hover:bg-white/25"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <p className="text-xs font-bold uppercase tracking-[.2em] text-[#e6a9af]">
+                            {selectedPackage.type} Package
+                        </p>
+
+                        <h2 className="mt-2 font-serif text-4xl">
+                            {selectedPackage.name}
+                        </h2>
+
+                        <p className="mt-3 max-w-2xl text-sm leading-6 text-white/75">
+                            {selectedPackage.description}
+                        </p>
+
+                        <div className="mt-6 flex flex-wrap items-end gap-6">
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-white/60">
+                                    Package price
+                                </p>
+
+                                <p className="mt-1 font-serif text-3xl font-bold">
+                                    ₱
+                                    {Number(
+                                        selectedPackage.price,
+                                    ).toLocaleString()}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-xs uppercase tracking-wide text-white/60">
+                                    Included duration
+                                </p>
+
+                                <p className="mt-1 text-lg font-semibold">
+                                    {selectedPackage.included_duration_hours}{' '}
+                                    hours
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-7 p-6 sm:p-8">
+                        {/* Features */}
+                        <section>
+                            <h3 className="font-serif text-2xl text-[#32191e]">
+                                What's included
+                            </h3>
+
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                {selectedPackage.features.map(
+                                    (feature) => (
+                                        <div
+                                            key={feature}
+                                            className="flex items-start gap-3 rounded-xl bg-[#fcf8f5] p-3"
+                                        >
+                                            <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[#edf7ef]">
+                                                <Check
+                                                    size={13}
+                                                    className="text-[#3d8657]"
+                                                    strokeWidth={3}
+                                                />
+                                            </span>
+
+                                            <span className="text-sm text-[#765f63]">
+                                                {feature}
+                                            </span>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                        </section>
+
+                        {/* Venues */}
+                        <section>
+                            <h3 className="font-serif text-2xl text-[#32191e]">
+                                Available venues
+                            </h3>
+
+                            <div className="mt-4 space-y-3">
+                                {selectedPackage.venues.map(
+                                    (venue) => (
+                                        <div
+                                            key={venue.id}
+                                            className="rounded-xl border border-[#eadfd9] p-4"
+                                        >
+                                            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                                                <div>
+                                                    <p className="font-semibold text-[#32191e]">
+                                                        {venue.name}
+                                                    </p>
+
+                                                    <p className="mt-1 text-sm text-[#765f63]">
+                                                        Capacity:{' '}
+                                                        {
+                                                            venue.minimum_capacity_pax
+                                                        }
+                                                        –
+                                                        {
+                                                            venue.maximum_capacity_pax
+                                                        }{' '}
+                                                        pax
+                                                    </p>
+                                                </div>
+
+                                                <p className="text-sm font-semibold text-[#7d1933]">
+                                                    Extension: ₱
+                                                    {Number(
+                                                        venue.pivot
+                                                            .extension_rate_per_hour,
+                                                    ).toLocaleString()}
+                                                    /hour
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ),
+                                )}
+                            </div>
+                        </section>
+
+                        {/* Add-ons */}
+                        {selectedPackage.addons.length > 0 && (
+                            <section>
+                                <h3 className="font-serif text-2xl text-[#32191e]">
+                                    Optional add-ons
+                                </h3>
+
+                                <div className="mt-4 space-y-2">
+                                    {selectedPackage.addons.map(
+                                        (addon) => (
+                                            <div
+                                                key={addon.name}
+                                                className="flex justify-between rounded-xl bg-[#fcf8f5] px-4 py-3 text-sm"
+                                            >
+                                                <span className="text-[#765f63]">
+                                                    {addon.name}
+                                                </span>
+
+                                                <span className="font-semibold text-[#7d1933]">
+                                                    ₱
+                                                    {Number(
+                                                        addon.price,
+                                                    ).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Footer */}
+                        <div className="flex flex-col gap-3 border-t border-[#eadfd9] pt-6 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedPackage(null)}
+                                className="rounded-xl border border-[#d7c2c4] px-6 py-3 text-sm font-semibold text-[#7d1933]"
+                            >
+                                Close
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleChoosePackage}
+                                className="rounded-xl bg-[#7d1933] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#5e1227]"
+                            >
+                                Choose {selectedPackage.name}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
     </>;
 }
