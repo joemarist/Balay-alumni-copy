@@ -10,7 +10,9 @@ export type Venue = {
     description: string;
     minimum_capacity_pax: number;
     maximum_capacity_pax: number;
-    rate: string;
+    rate: string | number;
+    minimum_booking_hours: number;
+    extension_rate_per_hour: string | number;
     rate_duration: string;
     inclusions: string[];
     note?: string;

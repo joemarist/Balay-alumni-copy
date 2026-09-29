@@ -16,6 +16,8 @@ class Venue extends Model
         'minimum_capacity_pax',
         'maximum_capacity_pax',
         'rate',
+        'minimum_booking_hours',
+        'extension_rate_per_hour',
         'rate_duration',
         'inclusions',
         'note',
@@ -29,6 +31,8 @@ class Venue extends Model
             'minimum_capacity_pax' => 'integer',
             'maximum_capacity_pax' => 'integer',
             'rate' => 'decimal:2',
+            'minimum_booking_hours' => 'integer',
+            'extension_rate_per_hour' => 'decimal:2',
             'inclusions' => 'array',
             'available' => 'boolean',
         ];

@@ -21,6 +21,8 @@ type BackendVenue = {
     minimum_capacity_pax: number;
     maximum_capacity_pax: number;
     rate: string | number;
+    minimum_booking_hours: number;
+    extension_rate_per_hour: string | number;
     rate_duration: string;
     inclusions: string[];
     note: string | null;
@@ -41,6 +43,8 @@ export default function AdminVenues() {
         minimumCapacityPax: venue.minimum_capacity_pax,
         maximumCapacityPax: venue.maximum_capacity_pax,
         rate: Number(venue.rate),
+        minimumBookingHours: Number(venue.minimum_booking_hours),
+        extensionRatePerHour: Number(venue.extension_rate_per_hour),
         rateDuration: venue.rate_duration,
         inclusions: venue.inclusions ?? [],
         note: venue.note ?? undefined,
@@ -101,7 +105,16 @@ export default function AdminVenues() {
         );
 
         formData.append('rate', String(values.rate));
-        formData.append('rate_duration', values.rateDuration);
+
+        formData.append(
+            'minimum_booking_hours',
+            String(values.minimumBookingHours),
+        );
+
+        formData.append(
+            'extension_rate_per_hour',
+            String(values.extensionRatePerHour),
+        );
 
         values.inclusions.forEach((inclusion, index) => {
             formData.append(`inclusions[${index}]`, inclusion);
@@ -148,7 +161,16 @@ export default function AdminVenues() {
         );
 
         formData.append('rate', String(values.rate));
-        formData.append('rate_duration', values.rateDuration);
+
+        formData.append(
+            'minimum_booking_hours',
+            String(values.minimumBookingHours),
+        );
+
+        formData.append(
+            'extension_rate_per_hour',
+            String(values.extensionRatePerHour),
+        );
 
         values.inclusions.forEach((inclusion, index) => {
             formData.append(`inclusions[${index}]`, inclusion);

@@ -76,6 +76,22 @@ function convertTo24Hour(time: string): string {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
+function calculateDurationInHours(
+    startTime: string,
+    endTime: string,
+): number {
+    const start = convertTo24Hour(startTime);
+    const end = convertTo24Hour(endTime);
+
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const [endHour, endMinute] = end.split(':').map(Number);
+
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    return (endMinutes - startMinutes) / 60;
+}
+
 function Stepper({ step }: { step: 1 | 2 | 3 }) {
     const steps = [
         { number: 1 as const, label: 'Details' },

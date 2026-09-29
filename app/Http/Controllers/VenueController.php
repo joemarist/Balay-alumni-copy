@@ -123,7 +123,18 @@ class VenueController extends Controller
             'gte:minimum_capacity_pax',
         ],
         'rate' => ['required', 'numeric', 'min:0'],
-        'rate_duration' => ['required', 'string', 'max:255'],
+
+        'minimum_booking_hours' => [
+            'required',
+            'integer',
+            'min:1',
+        ],
+
+        'extension_rate_per_hour' => [
+            'required',
+            'numeric',
+            'min:0',
+        ],
         'inclusions' => ['required', 'array', 'min:1'],
         'inclusions.*' => ['string', 'max:255'],
         'note' => ['nullable', 'string'],
@@ -164,7 +175,18 @@ public function update(Request $request, Venue $venue): RedirectResponse
             'gte:minimum_capacity_pax',
         ],
         'rate' => ['required', 'numeric', 'min:0'],
-        'rate_duration' => ['required', 'string', 'max:255'],
+
+        'minimum_booking_hours' => [
+            'required',
+            'integer',
+            'min:1',
+        ],
+
+        'extension_rate_per_hour' => [
+            'required',
+            'numeric',
+            'min:0',
+        ],
         'inclusions' => ['required', 'array', 'min:1'],
         'inclusions.*' => ['string', 'max:255'],
         'note' => ['nullable', 'string'],

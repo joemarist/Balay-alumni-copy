@@ -11,6 +11,8 @@ export type AdminVenue = {
     minimumCapacityPax: number;
     maximumCapacityPax: number;
     rate: number;
+    minimumBookingHours: number;
+    extensionRatePerHour: number;
     rateDuration: string;
     inclusions: string[];
     note?: string;
@@ -33,6 +35,8 @@ function emptyFormState() {
         minimumCapacityPax: '',
         maximumCapacityPax: '',
         rate: '',
+        minimumBookingHours: '',
+        extensionRatePerHour: '',
         rateDuration: '',
         inclusionsText: '',
         note: '',
@@ -50,6 +54,8 @@ function venueToFormState(venue: AdminVenue) {
         minimumCapacityPax: '',
         maximumCapacityPax: '',
         rate: String(venue.rate),
+        minimumBookingHours: String(venue.minimumBookingHours),
+        extensionRatePerHour: String(venue.extensionRatePerHour),
         rateDuration: venue.rateDuration,
         inclusionsText: venue.inclusions.join('\n'),
         note: venue.note ?? '',
@@ -98,11 +104,21 @@ function getMissingFields(form: ReturnType<typeof emptyFormState>): string[] {
     }
 
     if (!form.rate || Number(form.rate) <= 0) {
-        missing.push('Rate / Price')
+        missing.push('Base Rate / Price')
     }
 
-    if (!form.rateDuration.trim()) {
-        missing.push('Rate Duration')
+    if (
+        !form.minimumBookingHours ||
+        Number(form.minimumBookingHours) <= 0
+    ) {
+        missing.push('Minimum Booking Hours')
+    }
+
+    if (
+        form.extensionRatePerHour === '' ||
+        Number(form.extensionRatePerHour) < 0
+    ) {
+        missing.push('Extension Rate / Hour')
     }
 
     if (!form.inclusionsText.trim()) {
@@ -123,6 +139,8 @@ function formsAreEqual(
         a.minimumCapacityPax === b.minimumCapacityPax &&
         a.maximumCapacityPax === b.maximumCapacityPax &&
         a.rate === b.rate &&
+        a.minimumBookingHours === b.minimumBookingHours &&
+        a.extensionRatePerHour === b.extensionRatePerHour &&
         a.rateDuration === b.rateDuration &&
         a.inclusionsText === b.inclusionsText &&
         a.note === b.note &&
@@ -169,6 +187,8 @@ export function VenueFormModal({
             minimumCapacityPax: Number(form.minimumCapacityPax) || 0,
             maximumCapacityPax: Number(form.maximumCapacityPax) || 0,
             rate: Number(form.rate) || 0,
+            minimumBookingHours: Number(form.minimumBookingHours) || 0,
+            extensionRatePerHour: Number(form.extensionRatePerHour) || 0,
             rateDuration: form.rateDuration,
             inclusions: form.inclusionsText
                 .split('\n')
@@ -303,33 +323,66 @@ export function VenueFormModal({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                                    Rate / Price (₱)
-                                </label>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={form.rate}
-                                    onChange={(event) => updateField('rate', event.target.value)}
-                                    placeholder="5000"
-                                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
-                                />
-                            </div>
-                            <div>
-                                <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-                                    Rate Duration
-                                </label>
-                                <input
-                                    type="text"
-                                    value={form.rateDuration}
-                                    onChange={(event) => updateField('rateDuration', event.target.value)}
-                                    placeholder="4 hours use"
-                                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
-                                />
-                            </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                                Base Rate (₱)
+                            </label>
+
+                            <input
+                                type="number"
+                                min={0}
+                                value={form.rate}
+                                onChange={(event) =>
+                                    updateField('rate', event.target.value)
+                                }
+                                placeholder="15000"
+                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                            />
                         </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                                Minimum Booking Hours
+                            </label>
+
+                            <input
+                                type="number"
+                                min={1}
+                                step={1}
+                                value={form.minimumBookingHours}
+                                onChange={(event) =>
+                                    updateField(
+                                        'minimumBookingHours',
+                                        event.target.value,
+                                    )
+                                }
+                                placeholder="4"
+                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+                                Extension Rate / Hour (₱)
+                            </label>
+
+                            <input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={form.extensionRatePerHour}
+                                onChange={(event) =>
+                                    updateField(
+                                        'extensionRatePerHour',
+                                        event.target.value,
+                                    )
+                                }
+                                placeholder="2500"
+                                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#6B1E28] focus:bg-white focus:outline-none"
+                            />
+                        </div>
+                    </div>
 
                         <div>
                             <label className="mb-1.5 block text-sm font-medium text-neutral-700">
