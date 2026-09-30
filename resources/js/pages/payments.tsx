@@ -254,8 +254,8 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
         const [uploadForm, setUploadForm] = useState({
             bookingRef: firstReservation?.bookingRef ?? '',
             amount: firstReservation
-                ? String(Math.round(firstReservation.amount * 0.5))
-                : '',
+            ? String(firstReservation.amount)
+            : '',
             method: 'GCash' as 'GCash' | 'Bank Transfer' | 'Cash',
             referenceNumber: '',
             remarks: '',
@@ -302,6 +302,20 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
             id: string,
             newStatus: 'Confirmed' | 'Rejected',
         ) => {
+            const payment = paymentsList.find((p) => p.id === id);
+
+            if (!payment) {
+                showToast('Payment record not found.');
+                return;
+            }
+
+            if (newStatus === 'Confirmed' && !payment.proofImage) {
+                showToast(
+                    'This payment cannot be confirmed because no transaction proof was submitted.',
+                );
+                return;
+            }
+
             const reservationId = id.replace('RES-', '');
 
             router.patch(
@@ -368,6 +382,19 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                 return;
             }
 
+            const submittedAmount = Number(uploadForm.amount);
+            const requiredAmount = Number(selectedReservation.amount);
+
+            if (
+                !Number.isFinite(submittedAmount) ||
+                submittedAmount !== requiredAmount
+            ) {
+                showToast(
+                    `Payment amount must be exactly ₱${requiredAmount.toLocaleString()}.`,
+                );
+                return;
+            }
+
             const reservationId = selectedReservation.id.replace('RES-', '');
 
             const formData = new FormData();
@@ -412,12 +439,8 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                         setUploadForm({
                             bookingRef:
                                 customerReservations[0]?.bookingRef ?? '',
-                            amount: customerReservations[0]
-                                ? String(
-                                      Math.round(
-                                          customerReservations[0].amount * 0.5,
-                                      ),
-                                  )
+                                amount: customerReservations[0]
+                                ? String(customerReservations[0].amount)
                                 : '',
                             method: 'GCash',
                             referenceNumber: '',
@@ -667,8 +690,18 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                                 )}
                                                 <button
                                                     type="button"
+                                                    disabled={!payment.proofImage}
                                                     onClick={() => handleVerify(payment.id, 'Confirmed')}
-                                                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-emerald-600 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 active:scale-95"
+                                                    className={`inline-flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold ${
+                                                        payment.proofImage
+                                                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'
+                                                            : 'cursor-not-allowed bg-neutral-200 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-600'
+                                                    }`}
+                                                    title={
+                                                        payment.proofImage
+                                                            ? 'Confirm payment'
+                                                            : 'Cannot confirm until the customer submits payment proof'
+                                                    }
                                                 >
                                                     <Check className="size-3.5" />
                                                     <span>Confirm</span>
@@ -874,9 +907,18 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                                             <>
                                                                 <button
                                                                     type="button"
+                                                                    disabled={!p.proofImage}
                                                                     onClick={() => handleVerify(p.id, 'Confirmed')}
-                                                                    className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50"
-                                                                    title="Verify and Approve"
+                                                                    className={`rounded-lg p-1.5 ${
+                                                                        p.proofImage
+                                                                            ? 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/50'
+                                                                            : 'cursor-not-allowed text-neutral-300 dark:text-neutral-700'
+                                                                    }`}
+                                                                    title={
+                                                                        p.proofImage
+                                                                            ? 'Verify and confirm payment'
+                                                                            : 'Cannot confirm: no transaction proof submitted'
+                                                                    }
                                                                 >
                                                                     <CheckCircle className="size-4" />
                                                                 </button>
@@ -946,7 +988,7 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                                 ...uploadForm,
                                                 bookingRef: e.target.value,
                                                 amount: selectedReservation
-                                                    ? String(Math.round(selectedReservation.amount * 0.5))
+                                                    ? String(selectedReservation.amount)
                                                     : uploadForm.amount,
                                             });
                                         }}
@@ -966,22 +1008,31 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="mb-1 block font-semibold text-neutral-700 dark:text-neutral-300">
-                                            Amount Paid (₱)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            required
-                                            min="1"
-                                            value={uploadForm.amount}
-                                            onChange={(e) =>
-                                                setUploadForm({ ...uploadForm, amount: e.target.value })
-                                            }
-                                            placeholder="e.g. 7500"
-                                            className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-800 focus:border-[#6B1E28] focus:bg-white focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
-                                        />
-                                    </div>
+                                <div>
+                                <label className="mb-1 block font-semibold text-neutral-700 dark:text-neutral-300">
+                                    Exact Payment Amount (₱)
+                                </label>
+
+                                <p className="mb-2 text-[11px] text-neutral-500 dark:text-neutral-400">
+                                    You must enter the exact total amount required for this reservation.
+                                </p>
+
+                                <input
+                                    type="number"
+                                    required
+                                    min="0.01"
+                                    step="0.01"
+                                    value={uploadForm.amount}
+                                    onChange={(e) =>
+                                        setUploadForm({
+                                            ...uploadForm,
+                                            amount: e.target.value,
+                                        })
+                                    }
+                                    placeholder="Enter exact amount"
+                                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-800 focus:border-[#6B1E28] focus:bg-white focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200"
+                                />
+                            </div>
                                     <div>
                                         <label className="mb-1 block font-semibold text-neutral-700 dark:text-neutral-300">
                                             Payment Method
@@ -1160,7 +1211,9 @@ const INITIAL_PAYMENTS: PaymentRecord[] = [
                                 </div>
                             </div>
 
-                            {viewMode === 'admin' && viewProofModal.status === 'Pending' && (
+                            {viewMode === 'admin' &&
+                            viewProofModal.status === 'Pending' &&
+                            viewProofModal.proofImage && (
                                 <div className="mt-5 flex gap-2 border-t border-neutral-200 pt-3 dark:border-neutral-800">
                                     <button
                                         type="button"

@@ -88,8 +88,7 @@ public function submitPaymentProof(
         'payment_amount' => [
             'required',
             'numeric',
-            'min:1',
-            'max:' . $reservation->total_amount,
+            'min:0.01',
         ],
         'payment_method' => [
             'required',
@@ -111,6 +110,29 @@ public function submitPaymentProof(
             'max:10240',
         ],
     ]);
+
+    $submittedAmount = number_format(
+        (float) $validated['payment_amount'],
+        2,
+        '.',
+        ''
+    );
+
+    $requiredAmount = number_format(
+        (float) $reservation->total_amount,
+        2,
+        '.',
+        ''
+    );
+
+    if ($submittedAmount !== $requiredAmount) {
+        throw ValidationException::withMessages([
+            'payment_amount' =>
+                'The payment amount must be exactly ₱' .
+                number_format((float) $reservation->total_amount, 2) .
+                '.',
+        ]);
+    }
 
     if ($request->hasFile('payment_proof')) {
         $validated['payment_proof'] = $request
