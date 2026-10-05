@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\AdminUserManagementController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\VenueController;
@@ -20,9 +21,24 @@ Route::get('/', [VenueController::class, 'welcome'])->name('home');
 | This route must stay OUTSIDE the auth middleware because guests
 | need to access it before they log in.
 */
+/*
+|--------------------------------------------------------------------------
+| Public Email Verification
+|--------------------------------------------------------------------------
+|
+| This route intentionally does NOT use the auth middleware.
+| The verification link itself is protected by Laravel's signed URL.
+|
+*/
+Route::get(
+    '/email/verify-account/{id}/{hash}',
+    \App\Http\Controllers\EmailVerificationController::class
+)
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify.public');
+
 Route::get('/event-packages/login', function () {
     session()->put('url.intended', route('packages'));
-
     return redirect()->route('login');
 })->name('packages.login');
 
