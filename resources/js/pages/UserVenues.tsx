@@ -89,21 +89,36 @@ export default function Venues({
                                 </h3>
                                 <p className="text-sm text-neutral-500">{venue.description}</p>
 
-                                <div className="flex items-center gap-4 text-sm text-neutral-500">
-                                    <span className="flex items-center gap-1.5">
-                                        <Users className="size-4" />
-                                        {venue.minimum_capacity_pax}-{venue.maximum_capacity_pax} pax
-                                    </span>
-                                    <span className="flex items-center gap-1.5">
-                                        <Clock className="size-4" />
-                                        {venue.rate_duration}
-                                    </span>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="rounded-lg bg-neutral-50 p-3">
+                                        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                                            <Users className="size-4" />
+                                            Capacity
+                                        </div>
+
+                                        <p className="mt-1 text-sm font-semibold text-[#3A1A1F]">
+                                            {venue.minimum_capacity_pax}-
+                                            {venue.maximum_capacity_pax} pax
+                                        </p>
+                                    </div>
+
+                                    <div className="rounded-lg bg-neutral-50 p-3">
+                                        <div className="flex items-center gap-1.5 text-xs text-neutral-400">
+                                            <Clock className="size-4" />
+                                            Minimum Booking
+                                        </div>
+
+                                        <p className="mt-1 text-sm font-semibold text-[#3A1A1F]">
+                                            {venue.minimum_booking_hours} hour
+                                            {venue.minimum_booking_hours === 1 ? '' : 's'}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-wrap gap-2">
-                                {venue.inclusions.map((inclusion) => (
+                                    {venue.inclusions.map((inclusion) => (
                                         <span
-                                        key={inclusion}
+                                            key={inclusion}
                                             className="rounded-full bg-[#F7E3E0] px-3 py-1 text-xs font-medium text-[#6B1E28]"
                                         >
                                             {inclusion}
@@ -113,16 +128,30 @@ export default function Venues({
 
                                 <div className="mt-2 flex items-end justify-between">
                                     <div>
-                                    <p className="text-xs text-neutral-400">
-                                        Rate ({venue.rate_duration})
-                                    </p>
-                                    <p className="text-xl font-semibold text-[#3A1A1F]">
-                                        ₱{Number(venue.rate).toLocaleString('en-PH', {
-                                            minimumFractionDigits: 2,
-                                            maximumFractionDigits: 2,
-                                        })}
-                                    </p>
+                                        <p className="text-xs text-neutral-400">
+                                            Base Rate
+                                        </p>
+
+                                        <p className="text-xl font-semibold text-[#3A1A1F]">
+                                            ₱
+                                            {Number(venue.rate).toLocaleString('en-PH', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                        </p>
+
+                                        <p className="mt-1 text-xs text-neutral-400">
+                                            Extension: ₱
+                                            {Number(
+                                                venue.extension_rate_per_hour,
+                                            ).toLocaleString('en-PH', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2,
+                                            })}
+                                            /hour
+                                        </p>
                                     </div>
+
                                     <button
                                         type="button"
                                         onClick={() => setBookingVenue(venue)}

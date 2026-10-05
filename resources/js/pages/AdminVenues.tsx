@@ -285,14 +285,15 @@ export default function AdminVenues() {
                                 </h3>
                                 <p className="text-sm text-neutral-500">{venue.description}</p>
 
-                                <div className="flex items-center gap-4 text-sm text-neutral-500">
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-500">
                                     <span className="flex items-center gap-1.5">
                                         <Users className="size-4" />
                                         {venue.minimumCapacityPax}-{venue.maximumCapacityPax} pax
                                     </span>
+
                                     <span className="flex items-center gap-1.5">
                                         <Clock className="size-4" />
-                                        {venue.rateDuration}
+                                        Minimum {venue.minimumBookingHours} hrs
                                     </span>
                                 </div>
 
@@ -313,14 +314,14 @@ export default function AdminVenues() {
                                 </div>
 
                                 <div className="mt-2 flex items-end justify-between">
-                                    <div>
-                                        <p className="text-xs text-neutral-400">
-                                            Rate ({venue.rateDuration})
-                                        </p>
-                                        <p className="text-xl font-semibold text-[#3A1A1F]">
-                                            ₱{venue.rate.toLocaleString()}
-                                        </p>
-                                    </div>
+                                <div>
+                                    <p className="text-xs text-neutral-400">
+                                        Base Rate
+                                    </p>
+                                    <p className="text-xl font-semibold text-[#3A1A1F]">
+                                        ₱{venue.rate.toLocaleString()}
+                                    </p>
+                                </div>
                                     <div className="flex items-center gap-2">
                                         <button
                                             type="button"

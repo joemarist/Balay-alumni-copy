@@ -8,9 +8,14 @@ type WelcomeVenue = {
     name: string;
     description: string;
     category: 'Function Hall' | 'Conference' | 'Whole Venue';
+
     minimum_capacity_pax: number;
     maximum_capacity_pax: number;
+
     rate: string | number;
+    minimum_booking_hours: number;
+    extension_rate_per_hour: string | number;
+
     rate_duration: string;
     inclusions: string[];
     note: string | null;
@@ -134,19 +139,58 @@ export default function Welcome() {
                                 {venue.name}
                             </h3>
 
-                            <p className="mt-2 text-sm text-[#765f63]">
-                                {venue.minimum_capacity_pax}–
-                                {venue.maximum_capacity_pax} guests ·{' '}
-                                {venue.rate_duration}
+                            <p className="mt-2 text-sm leading-6 text-[#765f63]">
+                                {venue.description}
                             </p>
 
-                            <div className="mt-6 flex items-center justify-between border-t border-[#eadfd9] pt-4">
-                                <span className="font-serif text-xl text-[#7d1933]">
-                                    ₱{Number(venue.rate).toLocaleString()}
-                                    <small className="ml-1 font-sans text-xs text-[#8c6e73]">
-                                        / session
-                                    </small>
-                                </span>
+                            <div className="mt-4 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl bg-white p-3">
+                                    <p className="text-xs text-[#8c6e73]">
+                                        Capacity
+                                    </p>
+
+                                    <p className="mt-1 text-sm font-semibold text-[#32191e]">
+                                        {venue.minimum_capacity_pax}–
+                                        {venue.maximum_capacity_pax} pax
+                                    </p>
+                                </div>
+
+                                <div className="rounded-xl bg-white p-3">
+                                    <p className="text-xs text-[#8c6e73]">
+                                        Minimum Booking
+                                    </p>
+
+                                    <p className="mt-1 text-sm font-semibold text-[#32191e]">
+                                        {venue.minimum_booking_hours} hour
+                                        {venue.minimum_booking_hours === 1 ? '' : 's'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex items-end justify-between border-t border-[#eadfd9] pt-4">
+                                <div>
+                                    <p className="text-xs text-[#8c6e73]">
+                                        Base Rate
+                                    </p>
+
+                                    <p className="font-serif text-xl text-[#7d1933]">
+                                        ₱{Number(venue.rate).toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                    </p>
+
+                                    <p className="mt-1 text-xs text-[#8c6e73]">
+                                        Extension: ₱
+                                        {Number(
+                                            venue.extension_rate_per_hour,
+                                        ).toLocaleString('en-PH', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}
+                                        /hour
+                                    </p>
+                                </div>
 
                                 <button
                                     type="button"
@@ -339,11 +383,12 @@ export default function Welcome() {
                             {selectedVenue.description}
                         </p>
 
-                        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
                             <div className="rounded-xl bg-[#fcf8f5] p-4">
                                 <p className="text-xs text-[#8c6e73]">
                                     Capacity
                                 </p>
+
                                 <p className="mt-1 font-semibold text-[#32191e]">
                                     {selectedVenue.minimum_capacity_pax}–
                                     {selectedVenue.maximum_capacity_pax} pax
@@ -352,19 +397,43 @@ export default function Welcome() {
 
                             <div className="rounded-xl bg-[#fcf8f5] p-4">
                                 <p className="text-xs text-[#8c6e73]">
-                                    Rate
+                                    Minimum Booking
                                 </p>
+
                                 <p className="mt-1 font-semibold text-[#32191e]">
-                                    ₱{Number(selectedVenue.rate).toLocaleString()}
+                                    {selectedVenue.minimum_booking_hours} hour
+                                    {selectedVenue.minimum_booking_hours === 1 ? '' : 's'}
                                 </p>
                             </div>
 
                             <div className="rounded-xl bg-[#fcf8f5] p-4">
                                 <p className="text-xs text-[#8c6e73]">
-                                    Duration
+                                    Base Rate
                                 </p>
+
                                 <p className="mt-1 font-semibold text-[#32191e]">
-                                    {selectedVenue.rate_duration}
+                                    ₱
+                                    {Number(selectedVenue.rate).toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl bg-[#fcf8f5] p-4">
+                                <p className="text-xs text-[#8c6e73]">
+                                    Extension
+                                </p>
+
+                                <p className="mt-1 font-semibold text-[#32191e]">
+                                    ₱
+                                    {Number(
+                                        selectedVenue.extension_rate_per_hour,
+                                    ).toLocaleString('en-PH', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                    /hr
                                 </p>
                             </div>
                         </div>
