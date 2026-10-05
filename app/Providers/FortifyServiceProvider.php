@@ -49,8 +49,11 @@ class FortifyServiceProvider extends ServiceProvider
 
             if (
                 $user &&
-                $user->status === 'Active' &&
-                Hash::check($request->password, $user->password)
+                strtolower((string) $user->status) === 'active' &&
+                Hash::check(
+                    $request->password,
+                    $user->getRawOriginal('password')
+                )
             ) {
                 return $user;
             }
