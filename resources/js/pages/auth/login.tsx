@@ -69,7 +69,11 @@ export default function Login({ status, canResetPassword }: Props) {
                                         placeholder="email@example.com"
                                         className="h-11 rounded-xl border-[#eadfd9] bg-white px-3.5 text-sm text-[#27191b] shadow-sm transition focus-visible:border-[#7d1933] focus-visible:ring-[#7d1933]/20"
                                     />
-                                    <InputError message={errors.email} />
+                                    {errors.email && (
+                                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                                            {errors.email}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="grid gap-2">

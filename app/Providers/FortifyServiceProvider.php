@@ -15,6 +15,7 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
+use Illuminate\Validation\ValidationException;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -47,18 +48,67 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::authenticateUsing(function (Request $request) {
             $user = User::where('email', $request->email)->first();
 
-            if (
-                $user &&
-                strtolower((string) $user->status) === 'active' &&
-                Hash::check(
-                    $request->password,
-                    $user->getRawOriginal('password')
-                )
-            ) {
-                return $user;
+            /*
+            |--------------------------------------------------------------------------
+            | 1. User does not exist
+            |--------------------------------------------------------------------------
+            */
+            if (! $user) {
+                return null;
             }
 
-            return null;
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Password is incorrect
+            |--------------------------------------------------------------------------
+            */
+            if (! Hash::check(
+                $request->password,
+                $user->getRawOriginal('password')
+            )) {
+                return null;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 3. Password is correct, but email is not verified
+            |--------------------------------------------------------------------------
+            */
+            if (! $user->hasVerifiedEmail()) {
+                throw ValidationException::withMessages([
+                    'email' => 'Your email address has not been verified yet. Please check your email and click the verification link before logging in.',
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4. Email is verified but status is still inactive
+            |--------------------------------------------------------------------------
+            | This repairs older accounts that were verified before this fix.
+            */
+            if (strtolower((string) $user->status) === 'inactive') {
+                $user->forceFill([
+                    'status' => 'Active',
+                ])->save();
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 5. Account is not active
+            |--------------------------------------------------------------------------
+            */
+            if (strtolower((string) $user->status) !== 'active') {
+                throw ValidationException::withMessages([
+                    'email' => 'Your account is currently unavailable. Please contact the administrator.',
+                ]);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | 6. Everything is correct
+            |--------------------------------------------------------------------------
+            */
+            return $user;
         });
     }
 

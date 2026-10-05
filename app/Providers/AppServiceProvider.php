@@ -2,12 +2,9 @@
 
 namespace App\Providers;
 
-use App\Listeners\ActivateUserAfterEmailVerification;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -26,11 +23,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Event::listen(
-            Verified::class,
-            ActivateUserAfterEmailVerification::class
-        );
-
         $this->configureDefaults();
     }
 

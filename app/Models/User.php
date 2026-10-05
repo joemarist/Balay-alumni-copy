@@ -70,6 +70,33 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
+
+    /**
+     * Mark the user's email as verified and activate the account.
+     */
+    public function markEmailAsVerified(): bool
+    {
+        if ($this->hasVerifiedEmail()) {
+            return false;
+        }
+
+        return $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
+            'status' => 'Active',
+        ])->save();
+    }
+
+    /**
+     * Mark the user's email as unverified.
+     */
+    public function markEmailAsUnverified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => null,
+            'status' => 'inactive',
+        ])->save();
+    }
+
     public function reservations()
     {
         return $this->hasMany(Reservation::class);
